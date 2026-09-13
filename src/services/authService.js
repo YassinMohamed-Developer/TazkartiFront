@@ -1,4 +1,5 @@
 import { formatAuthErrorMessage } from './authErrors';
+import { MOCK_EVENTS } from '../data/mockData';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://localhost:7020/api';
 
@@ -717,13 +718,47 @@ export const normalizeTicketPass = (ticket, index = 0) => {
   const homeTeamName = (ticket.homeTeam || ticket.HomeTeam || '').trim() || null;
   const awayTeamName = (ticket.awayTeam || ticket.AwayTeam || '').trim() || null;
 
+  const isEvent = Boolean(
+    ticket.eventId ||
+    ticket.EventId ||
+    ticket.tierName ||
+    ticket.tierId ||
+    ticket.artist ||
+    ticket.type === 'event' ||
+    (ticket.competition && ticket.competition.toLowerCase().includes('entertainment'))
+  );
+
+  const categoryNum = Number(ticket.category) || 1;
+  const categoryLabel = getEventCategoryLabel(ticket.category);
+  const artist = (ticket.artist || '').trim();
+  const tierName = (ticket.tierName || ticket.tier?.name || (ticket.tierId ? `Tier ${ticket.tierId}` : 'VIP Pass')).trim();
+
+  let perksList = [];
+  if (Array.isArray(ticket.perks)) {
+    perksList = ticket.perks.filter(p => p !== null && p !== undefined && String(p).trim() !== '');
+  } else if (typeof ticket.perks === 'string' && ticket.perks.trim()) {
+    perksList = ticket.perks.includes(',')
+      ? ticket.perks.split(',').map(s => s.trim()).filter(Boolean)
+      : [ticket.perks.trim()];
+  }
+
+  const rawEventDate = ticket.eventDate || ticket.date;
+  const eventDateFormatted = formatDate(rawEventDate);
+  const eventTime = ticket.eventTime || ticket.time || '18:00';
+  const city = (ticket.city || 'Chicago').trim();
+  const venue = (ticket.venueName || ticket.venue || `${city} Arena`).trim();
+
+  const bannerImage = (ticket.bannerImage && typeof ticket.bannerImage === 'string' && ticket.bannerImage.trim())
+    ? ticket.bannerImage.trim()
+    : (DEFAULT_EVENT_IMAGES[categoryNum] || FALLBACK_EVENT_IMAGES_BY_INDEX[0]);
+
   const title = (ticket.title || ticket.Title || '').trim()
-    || (homeTeamName && awayTeamName ? `${homeTeamName} vs ${awayTeamName}` : 'Match Pass');
+    || (homeTeamName && awayTeamName ? `${homeTeamName} vs ${awayTeamName}` : (isEvent ? 'Live Entertainment Event' : 'Match Pass'));
 
   const homeTeam = homeTeamName ? createTeam(homeTeamName) : null;
   const awayTeam = awayTeamName ? createTeam(awayTeamName) : null;
 
-  const ticketPassId = ticket.id ?? ticket.ticketPassId ?? ticket.Id ?? ticket.ticketId ?? (ticket.bookingOrderId || bookingOrderId);
+  const ticketPassId = ticket.ticketPassId ?? ticket.id ?? ticket.Id ?? ticket.ticketId ?? (ticket.bookingOrderId || bookingOrderId);
   const verifyUrl = `${window.location.origin}/ticket/verify/${ticketPassId}`;
   const qrData = verifyUrl;
   const qrCode = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(qrData)}`;
@@ -753,7 +788,40 @@ export const normalizeTicketPass = (ticket, index = 0) => {
     qrData,
     qrCode,
     isGeneralAdmission: !rawRow && !rawSeat,
+    // Entertainment Event attributes
+    isEvent,
+    type: isEvent ? 'event' : (ticket.type || 'match'),
+    eventId: ticket.eventId ?? ticket.EventId ?? null,
+    artist: isEvent ? artist : null,
+    category: isEvent ? categoryLabel : competition,
+    categoryEnum: isEvent ? categoryNum : null,
+    tierId: ticket.tierId ?? null,
+    tierName: isEvent ? tierName : null,
+    perks: perksList,
+    date: isEvent ? eventDateFormatted : (ticket.date || '---'),
+    time: isEvent ? eventTime : (ticket.time || '---'),
+    city,
+    venue,
+    venueName: ticket.venueName || null,
+    bannerImage,
   };
+};
+
+/**
+ * Fetches an Entertainment Event ticket pass by TicketPass Id.
+ * GET https://localhost:7020/api/TicketPass/GetEntertainmentEventTicket/{id}
+ */
+export const getEntertainmentTicketById = async (id) => {
+  const response = await apiRequest(`/TicketPass/GetEntertainmentEventTicket/${id}`, {
+    method: 'GET',
+  });
+  if (response?.data) {
+    return {
+      ...response,
+      data: normalizeTicketPass(response.data),
+    };
+  }
+  return response;
 };
 
 /**
@@ -781,13 +849,30 @@ export const getAllTicketPasses = async () => {
 
 /**
  * Fetches a single ticket pass by TicketPass Id.
- * GET https://localhost:7020/api/TicketPass/GetTicket/{id}
+ * Checks /TicketPass/GetTicket/{id}, and if not found, checks /TicketPass/GetEntertainmentEventTicket/{id}
  */
 export const getTicketById = async (id) => {
-  const response = await apiRequest(`/TicketPass/GetTicket/${id}`, {
-    method: 'GET',
-  });
-  return response;
+  try {
+    const response = await apiRequest(`/TicketPass/GetTicket/${id}`, {
+      method: 'GET',
+    });
+    if (response?.data) {
+      return {
+        ...response,
+        data: normalizeTicketPass(response.data),
+      };
+    }
+    return response;
+  } catch (err) {
+    // If standard ticket lookup fails, try entertainment event ticket lookup
+    try {
+      const eventRes = await getEntertainmentTicketById(id);
+      if (eventRes?.data) return eventRes;
+    } catch (_) {
+      // Continue to throw original error
+    }
+    throw err;
+  }
 };
 
 /**
@@ -799,6 +884,220 @@ export const verifyTicket = async (id) => {
     method: 'POST',
   });
   return response;
+};
+
+/**
+ * C# Backend EventCategory Enum mapping:
+ * public enum EventCategory
+ * {
+ *     MusicAndConcerts = 1,
+ *     ClassicalAndOrchestra = 2,
+ *     RockAndIndie = 3,
+ *     ComedyAndTheater = 4
+ * }
+ */
+export const EVENT_CATEGORY_ENUM = {
+  MusicAndConcerts: 1,
+  ClassicalAndOrchestra: 2,
+  RockAndIndie: 3,
+  ComedyAndTheater: 4,
+};
+
+export const EVENT_CATEGORY_MAP = {
+  1: 'Music & Concerts',
+  2: 'Classical & Orchestra',
+  3: 'Rock & Indie',
+  4: 'Comedy & Theater',
+};
+
+export const getEventCategoryLabel = (category) => {
+  if (category === null || category === undefined) return 'Music & Concerts';
+  const num = Number(category);
+  if (EVENT_CATEGORY_MAP[num]) {
+    return EVENT_CATEGORY_MAP[num];
+  }
+  if (typeof category === 'string') {
+    const trimmed = category.trim();
+    if (trimmed === 'MusicAndConcerts') return 'Music & Concerts';
+    if (trimmed === 'ClassicalAndOrchestra') return 'Classical & Orchestra';
+    if (trimmed === 'RockAndIndie') return 'Rock & Indie';
+    if (trimmed === 'ComedyAndTheater') return 'Comedy & Theater';
+    return trimmed;
+  }
+  return 'Music & Concerts';
+};
+
+export const DEFAULT_EVENT_IMAGES = {
+  1: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?auto=format&fit=crop&w=1200&q=80',
+  2: 'https://images.unsplash.com/photo-1465847899084-d164df4dedc6?auto=format&fit=crop&w=1200&q=80',
+  3: 'https://images.unsplash.com/photo-1501386761578-eac5c94b800a?auto=format&fit=crop&w=1200&q=80',
+  4: 'https://images.unsplash.com/photo-1585699324551-f6c309eedeca?auto=format&fit=crop&w=1200&q=80',
+};
+
+export const FALLBACK_EVENT_IMAGES_BY_INDEX = [
+  'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?auto=format&fit=crop&w=1200&q=80',
+  'https://images.unsplash.com/photo-1465847899084-d164df4dedc6?auto=format&fit=crop&w=1200&q=80',
+  'https://images.unsplash.com/photo-1501386761578-eac5c94b800a?auto=format&fit=crop&w=1200&q=80',
+  'https://images.unsplash.com/photo-1585699324551-f6c309eedeca?auto=format&fit=crop&w=1200&q=80',
+  'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&w=1200&q=80',
+  'https://images.unsplash.com/photo-1540039155733-5bb30b53aa14?auto=format&fit=crop&w=1200&q=80',
+];
+
+/**
+ * Normalizes an entertainment event object from the API response into the UI shape.
+ */
+export const normalizeEntertainmentEvent = (event, index = 0) => {
+  if (!event || typeof event !== 'object') return null;
+
+  const rawEventId = toNullablePositiveInteger(event.id ?? event.eventId ?? event.entertainmentEventId);
+  const eventId = rawEventId || (index + 1);
+  const id = String(eventId);
+
+  const categoryNum = Number(event.category) || 1;
+  const categoryLabel = getEventCategoryLabel(event.category);
+
+  const rawDate = event.eventDate || event.date;
+  const formattedDate = formatDate(rawDate);
+  const eventTime = event.eventTime || event.time || '20:00';
+
+  const city = (event.city || 'Cairo').trim();
+  const venue = (event.venueName || event.venue || `${city} Cultural Arena`).trim();
+  const venueId = toNullablePositiveInteger(event.venueId) || 1;
+
+  const bannerImage = (event.bannerImage && typeof event.bannerImage === 'string' && event.bannerImage.trim())
+    ? event.bannerImage.trim()
+    : (DEFAULT_EVENT_IMAGES[categoryNum] || FALLBACK_EVENT_IMAGES_BY_INDEX[index % FALLBACK_EVENT_IMAGES_BY_INDEX.length]);
+
+  const isActive = event.isActive !== undefined ? Boolean(event.isActive) : true;
+
+  // Normalize ticket tiers
+  const tierNames = Array.isArray(event.nameOfTicketTier)
+    ? event.nameOfTicketTier
+    : Array.isArray(event.tiers)
+    ? event.tiers.map(t => t.name)
+    : [];
+
+  const prices = Array.isArray(event.price)
+    ? event.price
+    : Array.isArray(event.tiers)
+    ? event.tiers.map(t => t.price)
+    : [];
+
+  const perks = Array.isArray(event.perks)
+    ? event.perks
+    : Array.isArray(event.tiers)
+    ? event.tiers.map(t => t.perks)
+    : [];
+
+  let tiers = tierNames.map((name, tierIndex) => {
+    const rawPrice = prices[tierIndex];
+    const tierPrice = Number(rawPrice) >= 0 ? Number(rawPrice) : (Number(event.minPrice) || 50);
+    const rawPerk = perks[tierIndex];
+
+    let perksList = [];
+    if (Array.isArray(rawPerk)) {
+      perksList = rawPerk.filter(p => p !== null && p !== undefined && String(p).trim() !== '');
+    } else if (typeof rawPerk === 'string' && rawPerk.trim()) {
+      perksList = rawPerk.includes(',')
+        ? rawPerk.split(',').map(s => s.trim()).filter(Boolean)
+        : [rawPerk.trim()];
+    }
+
+    if (perksList.length === 0) {
+      if (tierIndex === 0) {
+        perksList = ['Access to main festival grounds and food trucks', 'Standard event admission'];
+      } else {
+        perksList = ['Premium seating area', 'Express entry & fast track access', 'Dedicated hospitality lounge'];
+      }
+    }
+
+    return {
+      id: `tier-${tierIndex + 1}`,
+      tierId: tierIndex + 1,
+      name: name || `Tier ${tierIndex + 1}`,
+      price: tierPrice,
+      perks: perksList,
+    };
+  });
+
+  // If no tier arrays existed but event.tiers is an array of objects
+  if (tiers.length === 0 && Array.isArray(event.tiers) && event.tiers.length > 0) {
+    tiers = event.tiers.map((t, tIdx) => ({
+      id: t.id || `tier-${tIdx + 1}`,
+      tierId: tIdx + 1,
+      name: t.name || `Tier ${tIdx + 1}`,
+      price: Number(t.price) || 50,
+      perks: Array.isArray(t.perks) ? t.perks : [t.perks || 'Standard entry'],
+    }));
+  }
+
+  if (tiers.length === 0) {
+    tiers = [
+      {
+        id: 'tier-1',
+        tierId: 1,
+        name: 'General Admission',
+        price: Number(event.minPrice) || 50,
+        perks: ['Standard event entry', 'General access to grounds'],
+      },
+    ];
+  }
+
+  const calculatedMinPrice = Number(event.minPrice) > 0
+    ? Number(event.minPrice)
+    : Math.min(...tiers.map(t => t.price));
+
+  return {
+    ...event,
+    id,
+    eventId,
+    title: event.title || 'Untitled Entertainment Event',
+    category: categoryLabel,
+    categoryEnum: categoryNum,
+    tag: event.tag || 'Festival',
+    artist: event.artist || 'Featured Artist',
+    date: formattedDate,
+    rawEventDate: rawDate,
+    time: eventTime,
+    venueId,
+    venueName: event.venueName || null,
+    venue,
+    city,
+    minPrice: calculatedMinPrice,
+    bannerImage,
+    description: event.description || 'Join us for an unforgettable live entertainment experience in Egypt.',
+    isActive,
+    nameOfTicketTier: tierNames,
+    price: prices,
+    perks: perks,
+    tiers,
+  };
+};
+
+/**
+ * Fetches all entertainment events from backend API.
+ * GET https://localhost:7020/api/EntertainmentEvents/GetAllEntertainmentEvent
+ */
+export const getAllEntertainmentEvents = async () => {
+  try {
+    const response = await apiRequest('/EntertainmentEvents/GetAllEntertainmentEvent', {
+      method: 'GET',
+    });
+
+    const rawList = Array.isArray(response?.data)
+      ? response.data
+      : Array.isArray(response)
+      ? response
+      : [];
+
+    if (rawList.length > 0) {
+      return rawList.map((item, index) => normalizeEntertainmentEvent(item, index)).filter(Boolean);
+    }
+  } catch (error) {
+    console.warn('[Tazkarti Service] Failed to fetch entertainment events from API, using fallback data:', error.message || error);
+  }
+
+  return MOCK_EVENTS.map((item, index) => normalizeEntertainmentEvent(item, index)).filter(Boolean);
 };
 
 export default {
@@ -823,5 +1122,12 @@ export default {
   TEAM_LOGOS,
   getTicketById,
   verifyTicket,
+  getEntertainmentTicketById,
+  EVENT_CATEGORY_ENUM,
+  EVENT_CATEGORY_MAP,
+  getEventCategoryLabel,
+  normalizeEntertainmentEvent,
+  getAllEntertainmentEvents,
 };
+
 

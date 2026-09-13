@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { MOCK_EVENTS } from '../data/mockData';
-import { getAllMatches } from '../services/authService';
+import { getAllMatches, getAllEntertainmentEvents } from '../services/authService';
 import { useAuth } from '../context/AuthContext';
 
 export const HomePage = () => {
@@ -10,6 +10,7 @@ export const HomePage = () => {
   const [matches, setMatches] = useState([]);
   const [isMatchesLoading, setIsMatchesLoading] = useState(true);
   const [matchesError, setMatchesError] = useState('');
+  const [events, setEvents] = useState(MOCK_EVENTS);
 
   useEffect(() => {
     let isMounted = true;
@@ -31,7 +32,19 @@ export const HomePage = () => {
       }
     };
 
+    const loadEvents = async () => {
+      try {
+        const eventData = await getAllEntertainmentEvents();
+        if (isMounted && Array.isArray(eventData) && eventData.length > 0) {
+          setEvents(eventData);
+        }
+      } catch (e) {
+        // Fallback already handled
+      }
+    };
+
     loadMatches();
+    loadEvents();
 
     return () => {
       isMounted = false;
@@ -354,7 +367,7 @@ export const HomePage = () => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {MOCK_EVENTS.map((event) => (
+              {events.slice(0, 4).map((event) => (
                 <div
                   key={event.id}
                   className="bg-surface-container-lowest rounded-xl border border-surface-variant shadow-sm hover:shadow-md transition-all flex flex-col overflow-hidden group"
@@ -397,6 +410,7 @@ export const HomePage = () => {
                       </div>
                       <Link
                         to={`/events/${event.id}/book`}
+                        state={{ event }}
                         className="bg-tertiary hover:bg-tertiary-container text-white font-body-md text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
                       >
                         Select Tier

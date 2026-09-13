@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useBooking } from '../context/BookingContext';
 import { useAuth } from '../context/AuthContext';
-import { getAllTicketPasses, normalizeTicketPass } from '../services/authService';
+import { getAllTicketPasses, normalizeTicketPass, getEntertainmentTicketById } from '../services/authService';
 
 export const MyTicketsPage = () => {
   const { tickets: contextTickets, transferTicket } = useBooking();
@@ -14,6 +14,7 @@ export const MyTicketsPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedGateFilter, setSelectedGateFilter] = useState('ALL');
   const [selectedCompetitionFilter, setSelectedCompetitionFilter] = useState('ALL');
+  const [selectedTypeFilter, setSelectedTypeFilter] = useState('ALL'); // 'ALL' | 'MATCH' | 'EVENT'
 
   // Modals & Printing state
   const [selectedTicketForTransfer, setSelectedTicketForTransfer] = useState(null);
@@ -24,7 +25,7 @@ export const MyTicketsPage = () => {
   const [printingTicketId, setPrintingTicketId] = useState(null);
 
   const handlePrintTicket = (ticket) => {
-    const id = ticket.id || ticket.bookingOrderId;
+    const id = ticket.id || ticket.ticketPassId || ticket.bookingOrderId;
     setPrintingTicketId(id);
     document.body.classList.add('has-active-print');
 
@@ -43,6 +44,7 @@ export const MyTicketsPage = () => {
   /**
    * Fetch ticket passes from backend API:
    * GET https://localhost:7020/api/TicketPass/GetAllTickets
+   * and optionally GET https://localhost:7020/api/TicketPass/GetEntertainmentEventTicket/41
    */
   const fetchTickets = async () => {
     setIsLoading(true);
@@ -51,7 +53,6 @@ export const MyTicketsPage = () => {
     try {
       const response = await getAllTicketPasses();
       const loadedTickets = response?.data || [];
-
       setDbTickets(loadedTickets);
     } catch (err) {
       console.warn('Failed to load tickets from /api/TicketPass/GetAllTickets:', err);
@@ -70,86 +71,48 @@ export const MyTicketsPage = () => {
       // Fallback: convert any locally saved context tickets to the normalized schema
       if (contextTickets && contextTickets.length > 0) {
         const fallbacks = contextTickets.map((t, idx) =>
-          normalizeTicketPass({
-            bookingOrderId: t.bookingOrderId || t.id || idx + 1,
-            currentFanId: t.currentFanId || t.fanId || user?.fanId || 'Fan Id : TZK-378584',
-            holderName: t.holderName || user?.fullName || 'HamedMohamed',
-            price: t.price || 600.0,
-            gate: t.gate || 'Gate 4',
-            status: 1,
-            competition: t.competition || 'Egyptian Premier League',
-            round: t.round || 'Round 10',
-            title: t.title || 'Al Ahly SC vs Zamalek SC',
-            homeTeam: t.homeTeam || 'Al Ahly SC',
-            awayTeam: t.awayTeam || 'Zamalek SC',
-            row: t.row || null,
-            seatNumber: t.seats?.[0] || t.seatNumber || null,
-          }, idx)
+          normalizeTicketPass(t, idx)
         );
         setDbTickets(fallbacks);
       } else {
-        // Realistic fallback matching user's backend database response
+        // Realistic fallback matching database match passes
         setDbTickets([
-          normalizeTicketPass({
-            id: 35,
-            bookingOrderId: 89,
-            currentFanId: "Fan Id : TZK-378584",
-            holderName: "HamedMohamed",
-            price: 600.00,
-            gate: "Gate 4",
-            status: 1,
-            competition: "Egyptian Premier League",
-            round: "Round 10",
-            title: "Al Ahly SC vs Zamalek SC",
-            homeTeam: "Al Ahly SC",
-            awayTeam: "Zamalek SC",
-            isActive: false
-          }, 0),
-          normalizeTicketPass({
-            id: 36,
-            bookingOrderId: 89,
-            currentFanId: "Fan Id : TZK-378584",
-            holderName: "HamedMohamed",
-            price: 600.00,
-            gate: "Gate 4",
-            status: 1,
-            competition: "Egyptian Premier League",
-            round: "Round 10",
-            title: "Al Ahly SC vs Zamalek SC",
-            homeTeam: "Al Ahly SC",
-            awayTeam: "Zamalek SC",
-            isActive: true
-          }, 1),
-          normalizeTicketPass({
-            id: 37,
-            bookingOrderId: 89,
-            currentFanId: "Fan Id : TZK-378584",
-            holderName: "HamedMohamed",
-            price: 600.00,
-            gate: "Gate 4",
-            status: 1,
-            competition: "Egyptian Premier League",
-            round: "Round 10",
-            title: "Al Ahly SC vs Zamalek SC",
-            homeTeam: "Al Ahly SC",
-            awayTeam: "Zamalek SC",
-            isActive: true
-          }, 2),
-          normalizeTicketPass({
-            id: 38,
-            bookingOrderId: 89,
-            currentFanId: "Fan Id : TZK-378584",
-            holderName: "HamedMohamed",
-            price: 600.00,
-            gate: "Gate 4",
-            status: 1,
-            competition: "Egyptian Premier League",
-            round: "Round 10",
-            title: "Al Ahly SC vs Zamalek SC",
-            homeTeam: "Al Ahly SC",
-            awayTeam: "Zamalek SC",
-            isActive: true
-          }, 3)
+          normalizeTicketPass(
+            {
+              id: 35,
+              bookingOrderId: 89,
+              currentFanId: 'Fan Id : TZK-378584',
+              holderName: 'HamedMohamed',
+              price: 600.0,
+              gate: 'Gate 4',
+              status: 1,
+              competition: 'Egyptian Premier League',
+              round: 'Round 10',
+              title: 'Al Ahly SC vs Zamalek SC',
+              homeTeam: 'Al Ahly SC',
+              awayTeam: 'Zamalek SC',
+              isActive: false,
+            },
+            0
+          ),
+          normalizeTicketPass(
+            {
+              id: 36,
+              bookingOrderId: 89,
+              currentFanId: 'Fan Id : TZK-378584',
+              holderName: 'HamedMohamed',
+              price: 600.0,
+              gate: 'Gate 4',
+              status: 1,
+              competition: 'Egyptian Premier League',
+              round: 'Round 10',
+              title: 'Al Ahly SC vs Zamalek SC',
+              homeTeam: 'Al Ahly SC',
+              awayTeam: 'Zamalek SC',
+              isActive: true,
+            },
+            1
+          ),
         ]);
       }
     } finally {
@@ -172,24 +135,27 @@ export const MyTicketsPage = () => {
     e.preventDefault();
     if (!targetFanId || !selectedTicketForTransfer) return;
 
-    // Update local state and context
     const updatedTarget = targetFanId.trim();
-    setDbTickets(prev =>
-      prev.map(t =>
-        t.bookingOrderId === selectedTicketForTransfer.bookingOrderId
+    setDbTickets((prev) =>
+      prev.map((t) =>
+        t.bookingOrderId === selectedTicketForTransfer.bookingOrderId ||
+        t.ticketPassId === selectedTicketForTransfer.ticketPassId
           ? {
-            ...t,
-            currentFanId: `Fan Id : ${updatedTarget}`,
-            cleanFanId: updatedTarget,
-            status: 3,
-            statusLabel: 'Transferred',
-          }
+              ...t,
+              currentFanId: `Fan Id : ${updatedTarget}`,
+              cleanFanId: updatedTarget,
+              status: 3,
+              statusLabel: 'Transferred',
+            }
           : t
       )
     );
 
     if (transferTicket) {
-      transferTicket(selectedTicketForTransfer.bookingOrderId, updatedTarget);
+      transferTicket(
+        selectedTicketForTransfer.ticketPassId || selectedTicketForTransfer.bookingOrderId,
+        updatedTarget
+      );
     }
 
     setTransferSuccess(true);
@@ -202,21 +168,32 @@ export const MyTicketsPage = () => {
 
   // Distinct gates available in ticket list
   const availableGates = useMemo(() => {
-    const gates = new Set(dbTickets.map(t => t.gate).filter(Boolean));
+    const gates = new Set(dbTickets.map((t) => t.gate).filter(Boolean));
     return Array.from(gates);
   }, [dbTickets]);
 
   // Distinct competitions available in ticket list
   const availableCompetitions = useMemo(() => {
-    const comps = new Set(dbTickets.map(t => t.competition).filter(Boolean));
+    const comps = new Set(
+      dbTickets
+        .filter((t) => !t.isEvent && t.type !== 'event')
+        .map((t) => t.competition)
+        .filter(Boolean)
+    );
     return Array.from(comps);
   }, [dbTickets]);
 
-  // Filtered tickets based on search, gate selector, and competition selector
+  // Filtered tickets based on search, gate selector, competition selector, and type
   const filteredTickets = useMemo(() => {
-    return dbTickets.filter(t => {
+    return dbTickets.filter((t) => {
+      const isEventTicket = Boolean(t.isEvent || t.type === 'event');
+      if (selectedTypeFilter === 'MATCH' && isEventTicket) return false;
+      if (selectedTypeFilter === 'EVENT' && !isEventTicket) return false;
+
       const matchesGate = selectedGateFilter === 'ALL' || t.gate === selectedGateFilter;
-      const matchesCompetition = selectedCompetitionFilter === 'ALL' || t.competition === selectedCompetitionFilter;
+      const matchesCompetition =
+        selectedCompetitionFilter === 'ALL' || t.competition === selectedCompetitionFilter;
+
       const q = searchQuery.toLowerCase().trim();
       if (!q) return matchesGate && matchesCompetition;
 
@@ -228,22 +205,33 @@ export const MyTicketsPage = () => {
         String(t.row || '').toLowerCase().includes(q) ||
         String(t.seatNumber || '').toLowerCase().includes(q) ||
         String(t.title || '').toLowerCase().includes(q) ||
+        String(t.artist || '').toLowerCase().includes(q) ||
+        String(t.tierName || '').toLowerCase().includes(q) ||
+        String(t.city || '').toLowerCase().includes(q) ||
         String(t.competition || '').toLowerCase().includes(q) ||
         String(t.round || '').toLowerCase().includes(q) ||
         String(t.homeTeam || '').toLowerCase().includes(q) ||
-        String(t.awayTeam || '').toLowerCase().includes(q);
+        String(t.awayTeam || '').toLowerCase().includes(q) ||
+        (Array.isArray(t.perks) && t.perks.some((p) => String(p).toLowerCase().includes(q)));
 
       return matchesGate && matchesCompetition && matchesQuery;
     });
-  }, [dbTickets, searchQuery, selectedGateFilter, selectedCompetitionFilter]);
+  }, [
+    dbTickets,
+    searchQuery,
+    selectedGateFilter,
+    selectedCompetitionFilter,
+    selectedTypeFilter,
+  ]);
 
   const stats = useMemo(() => {
     const totalCount = dbTickets.length;
     const totalAmount = dbTickets.reduce((sum, t) => sum + (Number(t.price) || 0), 0);
-    const activeCount = dbTickets.filter(t => t.status === 1 && t.isActive !== false).length;
-    const uniqueGates = new Set(dbTickets.map(t => t.gate)).size;
+    const activeCount = dbTickets.filter((t) => t.status === 1 && t.isActive !== false).length;
+    const matchCount = dbTickets.filter((t) => !t.isEvent && t.type !== 'event').length;
+    const eventCount = dbTickets.filter((t) => t.isEvent || t.type === 'event').length;
 
-    return { totalCount, totalAmount, activeCount, uniqueGates };
+    return { totalCount, totalAmount, activeCount, matchCount, eventCount };
   }, [dbTickets]);
 
   return (
@@ -259,7 +247,7 @@ export const MyTicketsPage = () => {
             My Tickets & Digital Passes
           </h1>
           <p className="font-body-md text-secondary text-sm mt-1 max-w-2xl">
-            Access stadium turnstiles, view gate allocations, or transfer passes to another Fan ID.
+            Access stadium turnstiles, view festival & concert passes, or transfer tickets to another Fan ID.
           </p>
         </div>
 
@@ -277,133 +265,94 @@ export const MyTicketsPage = () => {
             <span>{isLoading ? 'Syncing...' : 'Sync Passes'}</span>
           </button>
 
-          {/* Book New */}
+          {/* Book New Matches */}
           <Link
             to="/matches"
-            className="bg-primary-container hover:bg-primary text-on-primary font-semibold px-5 py-2.5 rounded-xl transition-all flex items-center gap-2 shadow-sm text-sm"
+            className="bg-primary hover:bg-primary-container text-white font-semibold px-4 py-2.5 rounded-xl transition-all flex items-center gap-1.5 text-sm shadow-sm"
           >
-            <span className="material-symbols-outlined text-base">add_circle</span>
-            <span>Book Match</span>
+            <span className="material-symbols-outlined text-base">sports_soccer</span>
+            <span>Book Matches</span>
+          </Link>
+
+          {/* Book New Events */}
+          <Link
+            to="/events"
+            className="bg-tertiary hover:bg-tertiary-container text-white font-semibold px-4 py-2.5 rounded-xl transition-all flex items-center gap-1.5 text-sm shadow-sm"
+          >
+            <span className="material-symbols-outlined text-base">theater_comedy</span>
+            <span>Book Events</span>
           </Link>
         </div>
       </div>
 
-      {/* User-Friendly Notice Banner */}
+      {/* Error Alert */}
       {fetchError && (
-        <div
-          className={`rounded-2xl p-4 sm:p-5 border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-sm transition-all shadow-xs print:hidden ${
-            fetchError.isAuthError
-              ? 'bg-primary/5 border-primary/20 text-on-surface'
-              : 'bg-golden-gate/10 border-golden-gate/25 text-on-surface'
-          }`}
-        >
-          <div className="flex items-start sm:items-center gap-3.5 flex-grow">
-            <div
-              className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-xs ${
-                fetchError.isAuthError
-                  ? 'bg-primary text-white'
-                  : 'bg-golden-gate/20 text-golden-gate'
-              }`}
-            >
-              <span className="material-symbols-outlined text-xl">
-                {fetchError.isAuthError ? 'lock_person' : 'cloud_off'}
-              </span>
-            </div>
-            <div className="space-y-0.5">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="font-bold text-sm text-on-surface">
-                  {fetchError.isAuthError
-                    ? 'Session Notice • تنبيه تسجيل الدخول'
-                    : 'Offline Mode • Viewing Saved Passes'}
-                </span>
-                <span
-                  className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
-                    fetchError.isAuthError
-                      ? 'bg-primary/10 text-primary'
-                      : 'bg-golden-gate/15 text-golden-gate'
-                  }`}
-                >
-                  {fetchError.isAuthError ? 'Sign In Required' : 'Offline Cache'}
-                </span>
-              </div>
-              <p className="text-xs text-secondary leading-relaxed">
-                {fetchError.isAuthError
-                  ? 'Your login session has expired or authentication is needed to sync live passes. Showing your saved digital passes below.'
-                  : 'Unable to reach the live ticketing server right now. Displaying your saved digital wallet passes.'}
+        <div className="p-4 rounded-2xl bg-error/10 border border-error/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-error print:hidden">
+          <div className="flex items-center gap-2.5 text-sm font-medium">
+            <span className="material-symbols-outlined text-xl shrink-0">wifi_off</span>
+            <div>
+              <p className="font-bold">{fetchError.message}</p>
+              <p className="text-xs opacity-85">
+                Showing your locally secured digital passes from the database cache.
               </p>
             </div>
           </div>
-
-          <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
-            {fetchError.isAuthError ? (
-              <Link
-                to="/login"
-                className="px-4 py-2 bg-primary hover:bg-primary-container text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-xs"
-              >
-                <span className="material-symbols-outlined text-base">login</span>
-                <span>Sign In</span>
-              </Link>
-            ) : (
-              <button
-                onClick={fetchTickets}
-                className="px-4 py-2 bg-golden-gate text-white rounded-xl text-xs font-bold hover:opacity-95 transition-all flex items-center gap-1.5 shadow-xs cursor-pointer"
-              >
-                <span className="material-symbols-outlined text-base">refresh</span>
-                <span>Retry</span>
-              </button>
-            )}
-
-            <button
-              onClick={() => setFetchError(null)}
-              className="p-1.5 text-secondary hover:text-on-surface hover:bg-surface-container rounded-lg transition-colors cursor-pointer"
-              title="Dismiss notice"
-            >
-              <span className="material-symbols-outlined text-lg">close</span>
-            </button>
-          </div>
+          <button
+            onClick={fetchTickets}
+            className="px-4 py-1.5 bg-error text-white text-xs font-semibold rounded-xl hover:opacity-90 transition-opacity shrink-0"
+          >
+            Retry Sync
+          </button>
         </div>
       )}
 
-      {/* Wallet Summary KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 print:hidden">
-        <div className="bg-surface-container-lowest border border-surface-variant rounded-2xl p-5 shadow-xs hover:border-primary/30 transition-all">
-          <div className="flex items-center justify-between text-secondary mb-2">
-            <span className="text-xs font-semibold uppercase tracking-wider font-label-sm">Total Passes</span>
-            <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
-              <span className="material-symbols-outlined text-xl">local_activity</span>
-            </div>
+      {/* Quick Stats Banner */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 print:hidden">
+        <div className="bg-surface-container-lowest p-4 rounded-2xl border border-surface-variant shadow-xs">
+          <span className="text-[11px] font-bold text-secondary uppercase tracking-wider font-label-sm block">
+            Total Passes
+          </span>
+          <div className="font-headline-md text-2xl sm:text-3xl font-bold text-on-surface mt-1">
+            {stats.totalCount}
           </div>
-          <div className="text-3xl font-bold text-on-surface">{stats.totalCount}</div>
-          <span className="text-xs text-secondary mt-1 block">In your digital wallet</span>
+          <span className="text-xs text-secondary mt-1 block">
+            {stats.matchCount} Match • {stats.eventCount} Event
+          </span>
         </div>
 
-        <div className="bg-surface-container-lowest border border-surface-variant rounded-2xl p-5 shadow-xs hover:border-pitch-green/30 transition-all">
-          <div className="flex items-center justify-between text-secondary mb-2">
-            <span className="text-xs font-semibold uppercase tracking-wider font-label-sm">Active & Valid</span>
-            <div className="w-9 h-9 rounded-xl bg-pitch-green/10 text-pitch-green flex items-center justify-center">
-              <span className="material-symbols-outlined text-xl">verified</span>
-            </div>
+        <div className="bg-surface-container-lowest p-4 rounded-2xl border border-surface-variant shadow-xs">
+          <span className="text-[11px] font-bold text-secondary uppercase tracking-wider font-label-sm block">
+            Active / Valid
+          </span>
+          <div className="font-headline-md text-2xl sm:text-3xl font-bold text-pitch-green mt-1">
+            {stats.activeCount}
           </div>
-          <div className="text-3xl font-bold text-pitch-green">{stats.activeCount}</div>
-          <span className="text-xs text-secondary mt-1 block">Ready for stadium gates</span>
+          <span className="text-xs text-secondary mt-1 block">Turnstile-ready</span>
         </div>
 
-        <div className="bg-surface-container-lowest border border-surface-variant rounded-2xl p-5 shadow-xs hover:border-golden-gate/30 transition-all">
-          <div className="flex items-center justify-between text-secondary mb-2">
-            <span className="text-xs font-semibold uppercase tracking-wider font-label-sm">Total Price</span>
-            <div className="w-9 h-9 rounded-xl bg-golden-gate/10 text-golden-gate flex items-center justify-center">
-              <span className="material-symbols-outlined text-xl">payments</span>
-            </div>
+        <div className="bg-surface-container-lowest p-4 rounded-2xl border border-surface-variant shadow-xs">
+          <span className="text-[11px] font-bold text-secondary uppercase tracking-wider font-label-sm block">
+            Event Types
+          </span>
+          <div className="font-headline-md text-2xl sm:text-3xl font-bold text-tertiary mt-1">
+            {stats.eventCount > 0 ? `${stats.eventCount} Live` : 'Matches'}
           </div>
-          <div className="text-3xl font-bold text-on-surface">
-            {stats.totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          <span className="text-xs text-secondary mt-1 block">Concerts & Sports</span>
+        </div>
+
+        <div className="bg-surface-container-lowest p-4 rounded-2xl border border-surface-variant shadow-xs">
+          <span className="text-[11px] font-bold text-secondary uppercase tracking-wider font-label-sm block">
+            Total Value
+          </span>
+          <div className="font-headline-md text-2xl sm:text-3xl font-bold text-on-surface mt-1">
+            {stats.totalAmount.toFixed(2)}
             <span className="text-sm font-semibold text-secondary ml-1.5">EGP</span>
           </div>
           <span className="text-xs text-secondary mt-1 block">Combined pass price</span>
         </div>
       </div>
 
-      {/* Controls: Search, Competition & Gate Filter */}
+      {/* Controls: Search, Type, Competition & Gate Filter */}
       <div className="space-y-3 bg-surface-container-lowest p-4 rounded-2xl border border-surface-variant shadow-xs print:hidden">
         <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
           {/* Search */}
@@ -413,7 +362,7 @@ export const MyTicketsPage = () => {
             </span>
             <input
               type="text"
-              placeholder="Search by Match, Teams, Competition, Fan ID, Gate..."
+              placeholder="Search by Event, Artist, Match, Gate, Fan ID, Tier..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full bg-surface text-on-surface pl-10 pr-8 py-2.5 rounded-xl text-xs border border-outline-variant focus:border-primary focus:outline-none transition-all"
@@ -428,13 +377,17 @@ export const MyTicketsPage = () => {
             )}
           </div>
 
-          {/* Active Filter Indicator & Clear All */}
-          {(searchQuery || selectedGateFilter !== 'ALL' || selectedCompetitionFilter !== 'ALL') && (
+          {/* Reset Filters */}
+          {(searchQuery ||
+            selectedGateFilter !== 'ALL' ||
+            selectedCompetitionFilter !== 'ALL' ||
+            selectedTypeFilter !== 'ALL') && (
             <button
               onClick={() => {
                 setSearchQuery('');
                 setSelectedGateFilter('ALL');
                 setSelectedCompetitionFilter('ALL');
+                setSelectedTypeFilter('ALL');
               }}
               className="self-start sm:self-auto text-xs text-primary hover:underline font-semibold flex items-center gap-1 shrink-0"
             >
@@ -445,36 +398,45 @@ export const MyTicketsPage = () => {
         </div>
 
         {/* Filter Chips Bars */}
-        <div className="flex flex-col sm:flex-row sm:items-center gap-2.5 pt-1 border-t border-surface-variant/60 flex-wrap">
-          {/* Competition Chips (if available) */}
-          {availableCompetitions.length > 0 && (
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
-              <span className="text-[11px] font-bold text-secondary uppercase tracking-wider whitespace-nowrap pl-0.5">
-                League:
-              </span>
-              <button
-                onClick={() => setSelectedCompetitionFilter('ALL')}
-                className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${selectedCompetitionFilter === 'ALL'
-                    ? 'bg-primary text-white shadow-xs'
-                    : 'bg-surface border border-outline-variant text-secondary hover:text-on-surface'
-                  }`}
-              >
-                All Leagues
-              </button>
-              {availableCompetitions.map(comp => (
-                <button
-                  key={comp}
-                  onClick={() => setSelectedCompetitionFilter(comp)}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${selectedCompetitionFilter === comp
-                      ? 'bg-primary text-white shadow-xs'
-                      : 'bg-surface border border-outline-variant text-secondary hover:text-on-surface'
-                    }`}
-                >
-                  {comp}
-                </button>
-              ))}
-            </div>
-          )}
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2.5 pt-2 border-t border-surface-variant/60 flex-wrap">
+          {/* Type Filter (All / Match / Event) */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+            <span className="text-[11px] font-bold text-secondary uppercase tracking-wider whitespace-nowrap pl-0.5">
+              Category:
+            </span>
+            <button
+              onClick={() => setSelectedTypeFilter('ALL')}
+              className={`px-3 py-1 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
+                selectedTypeFilter === 'ALL'
+                  ? 'bg-primary text-white shadow-xs'
+                  : 'bg-surface border border-outline-variant text-secondary hover:text-on-surface'
+              }`}
+            >
+              All Passes ({dbTickets.length})
+            </button>
+            <button
+              onClick={() => setSelectedTypeFilter('MATCH')}
+              className={`px-3 py-1 rounded-lg text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1 ${
+                selectedTypeFilter === 'MATCH'
+                  ? 'bg-primary text-white shadow-xs'
+                  : 'bg-surface border border-outline-variant text-secondary hover:text-on-surface'
+              }`}
+            >
+              <span className="material-symbols-outlined text-sm">sports_soccer</span>
+              <span>Matches ({stats.matchCount})</span>
+            </button>
+            <button
+              onClick={() => setSelectedTypeFilter('EVENT')}
+              className={`px-3 py-1 rounded-lg text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1 ${
+                selectedTypeFilter === 'EVENT'
+                  ? 'bg-tertiary text-white shadow-xs'
+                  : 'bg-surface border border-outline-variant text-secondary hover:text-on-surface'
+              }`}
+            >
+              <span className="material-symbols-outlined text-sm">theater_comedy</span>
+              <span>Live Events ({stats.eventCount})</span>
+            </button>
+          </div>
 
           {/* Gate Chips */}
           <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 sm:ml-auto">
@@ -483,23 +445,25 @@ export const MyTicketsPage = () => {
             </span>
             <button
               onClick={() => setSelectedGateFilter('ALL')}
-              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${selectedGateFilter === 'ALL'
+              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
+                selectedGateFilter === 'ALL'
                   ? 'bg-primary text-white shadow-xs'
                   : 'bg-surface border border-outline-variant text-secondary hover:text-on-surface'
-                }`}
+              }`}
             >
-              All Gates ({dbTickets.length})
+              All Gates
             </button>
-            {availableGates.map(gate => {
-              const count = dbTickets.filter(t => t.gate === gate).length;
+            {availableGates.map((gate) => {
+              const count = dbTickets.filter((t) => t.gate === gate).length;
               return (
                 <button
                   key={gate}
                   onClick={() => setSelectedGateFilter(gate)}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${selectedGateFilter === gate
+                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
+                    selectedGateFilter === gate
                       ? 'bg-primary text-white shadow-xs'
                       : 'bg-surface border border-outline-variant text-secondary hover:text-on-surface'
-                    }`}
+                  }`}
                 >
                   {gate} ({count})
                 </button>
@@ -512,7 +476,7 @@ export const MyTicketsPage = () => {
       {/* Loading Skeleton */}
       {isLoading && (
         <div className="space-y-4">
-          {[1, 2, 3].map(n => (
+          {[1, 2, 3].map((n) => (
             <div
               key={n}
               className="animate-pulse bg-surface-container-lowest border border-surface-variant rounded-2xl p-6 h-48 flex items-center justify-between"
@@ -533,9 +497,368 @@ export const MyTicketsPage = () => {
         <div className="space-y-8">
           {filteredTickets.length > 0 ? (
             filteredTickets.map((ticket, index) => {
-              const ticketId = ticket.id ? `${ticket.id}-${index}` : `${ticket.bookingOrderId}-${index}`;
+              const ticketId = ticket.id
+                ? `${ticket.id}-${index}`
+                : `${ticket.bookingOrderId}-${index}`;
               const isPrintingThis = printingTicketId === ticketId;
+              const isEventTicket = Boolean(ticket.isEvent || ticket.type === 'event');
 
+              /* =========================================================================
+                 SHAPE 1: ENTERTAINMENT EVENT TICKET PASS (Festivals, Concerts, Theater)
+                 ========================================================================= */
+              if (isEventTicket) {
+                return (
+                  <div
+                    key={ticketId}
+                    className={`tazkara-card bg-surface-container-lowest rounded-3xl border-2 border-surface-variant shadow-md hover:shadow-xl transition-all overflow-hidden flex flex-col lg:flex-row print:flex-row relative group print:m-0 print:border-outline-variant print:shadow-none ${
+                      isPrintingThis ? 'printing-target' : ''
+                    }`}
+                  >
+                    {/* Left Accent Border Stripe: Electric Purple to Golden Amber */}
+                    <div className="hidden lg:block print:block w-3 bg-gradient-to-b from-[#8E24AA] via-tertiary to-[#FFB300] shrink-0"></div>
+
+                    {/* MAIN TICKET BODY (Left / 70%) */}
+                    <div className="flex-grow flex flex-col justify-between p-6 lg:p-7 relative">
+                      {/* Top Header Bar */}
+                      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-surface-variant pb-4 mb-5">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-tertiary to-[#8E24AA] text-white flex items-center justify-center font-bold text-sm shadow-xs">
+                            <span className="material-symbols-outlined text-base">theater_comedy</span>
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-bold text-base text-on-surface tracking-tight">TAZKARTI</span>
+                              <span className="text-tertiary font-bold text-sm">| تذكرتي</span>
+                            </div>
+                            <span className="text-[10px] text-secondary uppercase tracking-wider font-label-sm block">
+                              Official Live Event Pass • تذكرة فعاليات وحفلات رسمية
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {/* Category Pill */}
+                          {ticket.category && (
+                            <span className="bg-tertiary/10 text-tertiary border border-tertiary/20 text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1.5">
+                              <span className="material-symbols-outlined text-sm">music_note</span>
+                              <span>{ticket.category}</span>
+                            </span>
+                          )}
+
+                          {/* Ticket Tier Badge (VIP Pass / General Admission) */}
+                          <span className="bg-gradient-to-r from-amber-500/15 via-yellow-500/25 to-amber-500/15 text-amber-600 dark:text-amber-300 border border-amber-400/40 text-xs font-black px-3 py-1 rounded-full flex items-center gap-1 shadow-xs uppercase tracking-wider">
+                            <span className="material-symbols-outlined text-sm text-amber-500">stars</span>
+                            <span>{ticket.tierName || 'VIP Pass'}</span>
+                          </span>
+
+                          {/* Gate Tag */}
+                          <span className="bg-surface-container border border-surface-variant text-on-surface text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1">
+                            <span className="material-symbols-outlined text-sm text-tertiary">door_front</span>
+                            <span>{ticket.gate}</span>
+                          </span>
+
+                          {/* Status Badge */}
+                          <span
+                            className={`text-[11px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider flex items-center gap-1 ${
+                              ticket.isActive === false || ticket.status === 4 || String(ticket.status).toLowerCase() === 'cancelled'
+                                ? 'bg-error/10 text-error border border-error/20'
+                                : ticket.status === 3 || String(ticket.status).toLowerCase() === 'attended'
+                                ? 'bg-tertiary/10 text-tertiary border border-tertiary/20'
+                                : ticket.status === 2 || String(ticket.status).toLowerCase() === 'transferred'
+                                ? 'bg-golden-gate/10 text-golden-gate border border-golden-gate/20'
+                                : 'bg-pitch-green/10 text-pitch-green border border-pitch-green/20'
+                            }`}
+                          >
+                            <span className="material-symbols-outlined text-xs">
+                              {ticket.isActive === false || ticket.status === 4 || String(ticket.status).toLowerCase() === 'cancelled'
+                                ? 'cancel'
+                                : ticket.status === 3 || String(ticket.status).toLowerCase() === 'attended'
+                                ? 'event_available'
+                                : ticket.status === 2 || String(ticket.status).toLowerCase() === 'transferred'
+                                ? 'swap_horiz'
+                                : 'check_circle'}
+                            </span>
+                            <span>{ticket.isActive === false ? 'Inactive Pass' : ticket.statusLabel}</span>
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* HERO SHOWCASE: Headline Artist & Event Banner */}
+                      <div className="mb-5 bg-gradient-to-r from-surface-container-high via-surface-container to-surface-container-high p-4 sm:p-5 rounded-2xl border border-surface-variant/90 shadow-sm relative overflow-hidden">
+                        {/* Ambient Festival Glow Background */}
+                        <div className="absolute top-0 right-1/4 w-48 h-48 bg-tertiary/10 rounded-full blur-3xl pointer-events-none"></div>
+                        <div className="absolute bottom-0 left-10 w-32 h-32 bg-amber-500/10 rounded-full blur-2xl pointer-events-none"></div>
+
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 relative z-10">
+                          {/* Artist Showcase */}
+                          <div className="flex items-center gap-4">
+                            <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-tertiary/20 to-purple-600/30 border border-tertiary/30 p-2 shadow-xs flex items-center justify-center shrink-0 text-tertiary">
+                              <span className="material-symbols-outlined text-3xl">mic</span>
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-[10px] text-tertiary font-bold uppercase tracking-wider font-label-sm">
+                                  Headliner • الفنان
+                                </span>
+                                <span className="w-1.5 h-1.5 rounded-full bg-tertiary"></span>
+                                <span className="text-[10px] text-secondary font-semibold">Live Concert / Festival</span>
+                              </div>
+                              <h3 className="font-headline-md text-lg sm:text-2xl font-bold text-on-surface">
+                                {ticket.artist || 'Featured Artist'}
+                              </h3>
+                              <h4 className="text-sm font-semibold text-secondary flex items-center gap-1.5 mt-0.5">
+                                <span className="material-symbols-outlined text-sm text-tertiary">festival</span>
+                                <span>{ticket.title}</span>
+                              </h4>
+                            </div>
+                          </div>
+
+                          {/* Date & Location Container */}
+                          <div className="flex sm:flex-col items-start sm:items-end gap-1.5 bg-surface-container-lowest/80 backdrop-blur-sm px-3.5 py-2.5 rounded-xl border border-surface-variant/80 shrink-0">
+                            <div className="flex items-center gap-1.5 text-xs font-bold text-on-surface">
+                              <span className="material-symbols-outlined text-sm text-tertiary">calendar_month</span>
+                              <span>
+                                {ticket.date} • {ticket.time}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-1.5 text-xs text-secondary">
+                              <span className="material-symbols-outlined text-sm text-tertiary">location_on</span>
+                              <span>
+                                {ticket.city}
+                                {ticket.venueName ? ` • ${ticket.venueName}` : ''}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* INCLUDED TIER PERKS & BENEFITS (Distinctive Feature!) */}
+                      <div className="mb-5 bg-surface p-4 rounded-2xl border border-surface-variant/80 shadow-xs space-y-2.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[11px] text-secondary uppercase tracking-wider font-label-sm font-bold flex items-center gap-1.5">
+                            <span className="material-symbols-outlined text-base text-pitch-green">verified</span>
+                            <span>Included Pass Perks & Benefits • مميزات الباقة</span>
+                          </span>
+                          <span className="text-[10px] bg-tertiary/10 text-tertiary font-bold px-2.5 py-0.5 rounded-full uppercase">
+                            {ticket.tierName || 'Tier Perks'}
+                          </span>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 pt-0.5">
+                          {ticket.perks && ticket.perks.length > 0 ? (
+                            ticket.perks.map((perk, pIdx) => (
+                              <div
+                                key={pIdx}
+                                className="flex items-center gap-2 text-xs text-on-surface bg-surface-container-lowest p-2.5 rounded-xl border border-surface-variant/60 shadow-2xs"
+                              >
+                                <span className="material-symbols-outlined text-pitch-green text-base fill shrink-0">
+                                  check_circle
+                                </span>
+                                <span className="leading-tight truncate" title={perk}>
+                                  {perk}
+                                </span>
+                              </div>
+                            ))
+                          ) : (
+                            <div className="flex items-center gap-2 text-xs text-secondary bg-surface-container-lowest p-2.5 rounded-xl border border-surface-variant/60 col-span-full">
+                              <span className="material-symbols-outlined text-pitch-green text-base fill">
+                                check_circle
+                              </span>
+                              <span>General admission festival grounds entry and main stage access</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Center Content: Fan Holder & Seating/Gate Details */}
+                      <div className="space-y-4">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-surface p-3.5 rounded-2xl border border-surface-variant">
+                          <div className="flex items-center gap-3">
+                            <div className="w-11 h-11 rounded-full bg-tertiary/10 text-tertiary font-bold flex items-center justify-center text-base shrink-0 border border-tertiary/20 shadow-xs">
+                              {ticket.holderName.slice(0, 2).toUpperCase()}
+                            </div>
+                            <div>
+                              <span className="text-[10px] text-secondary uppercase tracking-wider font-label-sm block">
+                                Ticket Holder • صاحب التذكرة
+                              </span>
+                              <h3 className="font-headline-md text-base sm:text-lg font-bold text-on-surface">
+                                {ticket.holderName}
+                              </h3>
+                            </div>
+                          </div>
+
+                          <div className="bg-surface-container-lowest px-3 py-2 rounded-xl border border-outline-variant/60 flex items-center justify-between sm:justify-start gap-2">
+                            <div>
+                              <span className="text-[9px] text-secondary uppercase tracking-wider block font-semibold">
+                                Fan ID • بطاقة المشجع
+                              </span>
+                              <span className="font-mono text-xs font-bold text-tertiary">
+                                {ticket.currentFanId}
+                              </span>
+                            </div>
+                            <button
+                              onClick={() => handleCopy(ticket.cleanFanId, `fan-${index}`)}
+                              className="text-secondary hover:text-tertiary transition-colors p-1 rounded hover:bg-surface-container print:hidden"
+                              title="Copy Fan ID"
+                            >
+                              <span className="material-symbols-outlined text-[16px]">
+                                {copiedField === `fan-${index}` ? 'check' : 'content_copy'}
+                              </span>
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Event Ticket Details Boxes */}
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                          {/* Gate Box */}
+                          <div className="bg-surface-container-low border border-surface-variant p-3 rounded-2xl text-center">
+                            <span className="text-[10px] uppercase tracking-wider text-secondary font-label-sm block">
+                              Gate • البوابة
+                            </span>
+                            <div className="text-sm sm:text-base font-bold text-tertiary mt-0.5 truncate" title={ticket.gate}>
+                              {ticket.gate}
+                            </div>
+                          </div>
+
+                          {/* Tier Box */}
+                          <div className="bg-surface-container-low border border-surface-variant p-3 rounded-2xl text-center">
+                            <span className="text-[10px] uppercase tracking-wider text-secondary font-label-sm block">
+                              Pass Category • فئة الباقة
+                            </span>
+                            <div className="text-sm sm:text-base font-bold text-on-surface mt-0.5 truncate" title={ticket.tierName || 'Pass'}>
+                              {ticket.tierName || 'Standard Pass'}
+                            </div>
+                          </div>
+
+                          {/* Price Box */}
+                          <div className="bg-surface-container-low border border-surface-variant p-3 rounded-2xl text-center">
+                            <span className="text-[10px] uppercase tracking-wider text-secondary font-label-sm block">
+                              Pass Price • السعر
+                            </span>
+                            <div className="text-base sm:text-lg font-bold text-tertiary mt-0.5">
+                              {ticket.price.toFixed(2)} <span className="text-[11px] font-normal text-secondary">EGP</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Bottom Barcode Strip */}
+                      <div className="mt-5 pt-4 border-t border-surface-variant flex flex-col sm:flex-row items-center justify-between gap-3 text-secondary">
+                        <div className="flex items-center gap-2 w-full sm:w-auto">
+                          <div className="flex items-end gap-[2px] h-6 px-2 bg-surface rounded border border-surface-variant shrink-0">
+                            {[5, 3, 7, 2, 6, 4, 3, 7, 2, 5, 4, 6, 3, 7, 2, 4, 6, 3, 5, 2, 7, 4, 3, 6, 2].map((h, i) => (
+                              <div
+                                key={i}
+                                className="bg-on-surface/70 w-[2px]"
+                                style={{ height: `${h * 3}px` }}
+                              ></div>
+                            ))}
+                          </div>
+                          <span className="text-[10px] font-mono tracking-widest uppercase text-secondary">
+                            TAZKARTI-EVENT-PASS-#{ticket.ticketPassId || ticket.id}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-1.5 text-[11px] text-secondary">
+                          <span className={`material-symbols-outlined text-[15px] ${ticket.isActive === false ? 'text-error' : 'text-tertiary'}`}>
+                            {ticket.isActive === false ? 'block' : 'stars'}
+                          </span>
+                          <span>
+                            {ticket.isActive === false
+                              ? 'Pass Inactive • تذكرة غير فعّالة'
+                              : 'Turnstile Electronic Gate Pass • صالحة للدخول الإلكتروني'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* PERFORATION SEAM */}
+                    <div className="relative flex lg:flex-col print:flex-col items-center justify-center">
+                      <div className="hidden lg:block print:block absolute -top-3.5 left-1/2 -translate-x-1/2 w-7 h-7 rounded-full bg-background border border-surface-variant z-10 shadow-inner"></div>
+                      <div className="hidden lg:block print:block h-full border-r-2 border-dashed border-outline-variant/70"></div>
+                      <div className="lg:hidden print:hidden w-full border-t-2 border-dashed border-outline-variant/70 relative">
+                        <div className="absolute -left-3.5 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-background border border-surface-variant z-10 shadow-inner"></div>
+                        <div className="absolute -right-3.5 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-background border border-surface-variant z-10 shadow-inner"></div>
+                      </div>
+                      <div className="hidden lg:block print:block absolute -bottom-3.5 left-1/2 -translate-x-1/2 w-7 h-7 rounded-full bg-background border border-surface-variant z-10 shadow-inner"></div>
+                    </div>
+
+                    {/* TICKET STUB (Right / 30%) */}
+                    <div className="lg:w-72 print:w-72 bg-gradient-to-b from-surface-container-low via-surface-container to-surface-container-low p-6 flex flex-col items-center justify-between gap-4 shrink-0 text-center">
+                      <div className="w-full space-y-1">
+                        <div className="text-[10px] font-bold tracking-widest text-tertiary uppercase font-label-sm flex items-center justify-center gap-1">
+                          <span className="material-symbols-outlined text-xs">confirmation_number</span>
+                          <span>EVENT PASS STUB • كعب التذكرة</span>
+                        </div>
+                        <div className="text-xs font-bold text-on-surface truncate" title={ticket.title}>
+                          {ticket.title}
+                        </div>
+                        <div className="text-[11px] font-semibold text-tertiary truncate">
+                          {ticket.artist}
+                        </div>
+                        <div className="inline-block bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-400/40 text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase mt-0.5">
+                          {ticket.tierName || 'VIP Pass'}
+                        </div>
+                      </div>
+
+                      {/* Scannable Pass QR Code with zoom */}
+                      <div
+                        onClick={() => setSelectedQrPass(ticket)}
+                        className="cursor-pointer group/qr relative bg-white p-3 rounded-2xl border-2 border-dashed border-tertiary/40 shadow-xs hover:border-tertiary transition-all inline-block"
+                        title="Click to enlarge Turnstile Pass QR"
+                      >
+                        <img
+                          src={ticket.qrCode}
+                          alt="Gate QR Code"
+                          className="w-28 h-28 object-contain rounded"
+                        />
+                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover/qr:opacity-100 transition-opacity rounded-2xl flex flex-col items-center justify-center text-white text-xs font-semibold gap-1 print:hidden">
+                          <span className="material-symbols-outlined text-2xl">zoom_in</span>
+                          <span>Enlarge Pass</span>
+                        </div>
+                      </div>
+
+                      <div className="text-[10px] text-secondary font-mono">
+                        Gate Turnstile • Pass #{ticket.ticketPassId || ticket.id}
+                      </div>
+
+                      {/* Action Buttons */}
+                      <div className="w-full space-y-2 pt-1 print:hidden">
+                        <button
+                          onClick={() => handlePrintTicket(ticket)}
+                          className="w-full bg-tertiary hover:bg-tertiary-container text-white font-bold px-3 py-2 rounded-xl transition-all text-xs text-center flex items-center justify-center gap-1.5 shadow-sm cursor-pointer active:scale-95"
+                          title="Print Event Pass"
+                        >
+                          <span className="material-symbols-outlined text-base">print</span>
+                          <span>Print Pass • طباعة التذكرة</span>
+                        </button>
+
+                        <button
+                          onClick={() => setSelectedQrPass(ticket)}
+                          className="w-full bg-surface-container-high hover:bg-surface-container-highest text-on-surface font-semibold px-3 py-2 rounded-xl transition-all text-xs text-center flex items-center justify-center gap-1.5 cursor-pointer shadow-xs active:scale-95"
+                          title="Open Turnstile Scanner QR Pass"
+                        >
+                          <span className="material-symbols-outlined text-base text-tertiary">qr_code_scanner</span>
+                          <span>Scan Pass</span>
+                        </button>
+
+                        <button
+                          onClick={() => setSelectedTicketForTransfer(ticket)}
+                          className="w-full bg-surface border border-outline-variant hover:bg-surface-container text-on-surface font-semibold px-3 py-2 rounded-xl transition-all text-xs text-center flex items-center justify-center gap-1.5 cursor-pointer shadow-xs active:scale-95"
+                          title="Transfer Event Pass"
+                        >
+                          <span className="material-symbols-outlined text-base text-secondary">swap_horiz</span>
+                          <span>Transfer Pass</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
+
+              /* =========================================================================
+                 SHAPE 2: STADIUM MATCH PASS (Football Matches)
+                 ========================================================================= */
               return (
                 <div
                   key={ticketId}
@@ -755,8 +1078,11 @@ export const MyTicketsPage = () => {
                           <span className="text-[10px] uppercase tracking-wider text-secondary font-label-sm block">
                             Round • البطولة
                           </span>
-                          <div className="text-sm sm:text-base font-bold text-on-surface mt-0.5 truncate" title={ticket.round || ticket.competition || 'Matchday'}>
-                            {ticket.round ? ticket.round : (ticket.competition || 'Match Pass')}
+                          <div
+                            className="text-sm sm:text-base font-bold text-on-surface mt-0.5 truncate"
+                            title={ticket.round || ticket.competition || 'Matchday'}
+                          >
+                            {ticket.round ? ticket.round : ticket.competition || 'Match Pass'}
                           </div>
                         </div>
 
@@ -772,9 +1098,8 @@ export const MyTicketsPage = () => {
                       </div>
                     </div>
 
-                    {/* Bottom Barcode Strip (Simulated Tazkarti turnstile security bar) */}
+                    {/* Bottom Barcode Strip */}
                     <div className="mt-5 pt-4 border-t border-surface-variant flex flex-col sm:flex-row items-center justify-between gap-3 text-secondary">
-                      {/* Barcode bars */}
                       <div className="flex items-center gap-2 w-full sm:w-auto">
                         <div className="flex items-end gap-[2px] h-6 px-2 bg-surface rounded border border-surface-variant shrink-0">
                           {[4, 2, 6, 3, 5, 2, 7, 4, 3, 6, 2, 5, 3, 7, 4, 2, 5, 3, 6, 2, 4, 3, 5, 2, 6].map((h, i) => (
@@ -803,21 +1128,14 @@ export const MyTicketsPage = () => {
                     </div>
                   </div>
 
-                  {/* PERFORATION SEAM (Dashed line with circular tear-off notches) */}
+                  {/* PERFORATION SEAM */}
                   <div className="relative flex lg:flex-col print:flex-col items-center justify-center">
-                    {/* Top Cutout Notch */}
                     <div className="hidden lg:block print:block absolute -top-3.5 left-1/2 -translate-x-1/2 w-7 h-7 rounded-full bg-background border border-surface-variant z-10 shadow-inner"></div>
-
-                    {/* Vertical Dashed Line */}
                     <div className="hidden lg:block print:block h-full border-r-2 border-dashed border-outline-variant/70"></div>
-
-                    {/* Horizontal Dashed Line (Mobile) */}
                     <div className="lg:hidden print:hidden w-full border-t-2 border-dashed border-outline-variant/70 relative">
                       <div className="absolute -left-3.5 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-background border border-surface-variant z-10 shadow-inner"></div>
                       <div className="absolute -right-3.5 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-background border border-surface-variant z-10 shadow-inner"></div>
                     </div>
-
-                    {/* Bottom Cutout Notch */}
                     <div className="hidden lg:block print:block absolute -bottom-3.5 left-1/2 -translate-x-1/2 w-7 h-7 rounded-full bg-background border border-surface-variant z-10 shadow-inner"></div>
                   </div>
 
@@ -861,9 +1179,8 @@ export const MyTicketsPage = () => {
                       Scan at turnstile camera
                     </div>
 
-                    {/* Action Buttons (Visible on website, hidden during print) */}
+                    {/* Action Buttons */}
                     <div className="w-full space-y-2 pt-1 print:hidden">
-                      {/* Print Tazkara Button */}
                       <button
                         onClick={() => handlePrintTicket(ticket)}
                         className="w-full bg-primary hover:bg-primary-container text-white font-bold px-3 py-2 rounded-xl transition-all text-xs text-center flex items-center justify-center gap-1.5 shadow-sm cursor-pointer active:scale-95"
@@ -873,7 +1190,6 @@ export const MyTicketsPage = () => {
                         <span>Print Tazkara • طباعة التذكرة</span>
                       </button>
 
-                      {/* Scan Pass Button */}
                       <button
                         onClick={() => setSelectedQrPass(ticket)}
                         className="w-full bg-primary-container hover:bg-primary text-on-primary font-semibold px-3 py-2 rounded-xl transition-all text-xs text-center flex items-center justify-center gap-1.5 cursor-pointer shadow-xs active:scale-95"
@@ -883,7 +1199,6 @@ export const MyTicketsPage = () => {
                         <span>Scan Pass</span>
                       </button>
 
-                      {/* Transfer Pass Button */}
                       <button
                         onClick={() => setSelectedTicketForTransfer(ticket)}
                         className="w-full bg-surface border border-outline-variant hover:bg-surface-container text-on-surface font-semibold px-3 py-2 rounded-xl transition-all text-xs text-center flex items-center justify-center gap-1.5 cursor-pointer shadow-xs active:scale-95"
@@ -904,34 +1219,45 @@ export const MyTicketsPage = () => {
               </div>
               <div className="space-y-1">
                 <h3 className="font-semibold text-lg text-on-surface">
-                  {searchQuery || selectedGateFilter !== 'ALL'
+                  {searchQuery || selectedGateFilter !== 'ALL' || selectedTypeFilter !== 'ALL'
                     ? 'No passes match your filter criteria'
                     : 'No tickets found in database'}
                 </h3>
                 <p className="text-sm text-secondary max-w-sm mx-auto">
-                  {searchQuery || selectedGateFilter !== 'ALL'
-                    ? 'Try clearing the search query or selecting "All Gates".'
+                  {searchQuery || selectedGateFilter !== 'ALL' || selectedTypeFilter !== 'ALL'
+                    ? 'Try clearing the search query or resetting filters.'
                     : 'Book upcoming matches or events to issue new Fan ID digital passes.'}
                 </p>
               </div>
-              {(searchQuery || selectedGateFilter !== 'ALL') ? (
+              {searchQuery || selectedGateFilter !== 'ALL' || selectedTypeFilter !== 'ALL' ? (
                 <button
                   onClick={() => {
                     setSearchQuery('');
                     setSelectedGateFilter('ALL');
+                    setSelectedCompetitionFilter('ALL');
+                    setSelectedTypeFilter('ALL');
                   }}
                   className="px-4 py-2 bg-surface border border-outline-variant text-on-surface rounded-xl text-xs font-semibold hover:bg-surface-container"
                 >
                   Reset Filters
                 </button>
               ) : (
-                <Link
-                  to="/matches"
-                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-white rounded-xl text-sm font-semibold hover:bg-primary-container"
-                >
-                  <span className="material-symbols-outlined text-base">explore</span>
-                  <span>Explore Matches</span>
-                </Link>
+                <div className="flex items-center justify-center gap-3">
+                  <Link
+                    to="/matches"
+                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-white rounded-xl text-sm font-semibold hover:bg-primary-container"
+                  >
+                    <span className="material-symbols-outlined text-base">sports_soccer</span>
+                    <span>Explore Matches</span>
+                  </Link>
+                  <Link
+                    to="/events"
+                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-tertiary text-white rounded-xl text-sm font-semibold hover:bg-tertiary-container"
+                  >
+                    <span className="material-symbols-outlined text-base">theater_comedy</span>
+                    <span>Explore Events</span>
+                  </Link>
+                </div>
               )}
             </div>
           )}
@@ -959,6 +1285,11 @@ export const MyTicketsPage = () => {
                 <span className="bg-primary/10 text-primary text-xs font-bold px-3 py-1 rounded-full uppercase">
                   {selectedQrPass.gate} Entry
                 </span>
+                {selectedQrPass.tierName && (
+                  <span className="bg-amber-500/15 text-amber-600 border border-amber-400/40 text-xs font-bold px-2.5 py-0.5 rounded-full">
+                    {selectedQrPass.tierName}
+                  </span>
+                )}
                 {selectedQrPass.round && (
                   <span className="bg-surface-container text-secondary text-xs font-semibold px-2.5 py-0.5 rounded-full">
                     {selectedQrPass.round}
@@ -970,6 +1301,12 @@ export const MyTicketsPage = () => {
                 <h4 className="font-bold text-base sm:text-lg text-on-surface pt-1">
                   {selectedQrPass.title}
                 </h4>
+              )}
+
+              {selectedQrPass.artist && (
+                <p className="text-xs text-tertiary font-bold">
+                  {selectedQrPass.artist}
+                </p>
               )}
 
               {selectedQrPass.competition && (
@@ -997,7 +1334,7 @@ export const MyTicketsPage = () => {
             </div>
 
             <div className="bg-surface-container p-3 rounded-xl border border-surface-variant text-xs text-secondary space-y-1">
-              <div className="font-bold text-on-surface">Scan at Stadium Turnstile</div>
+              <div className="font-bold text-on-surface">Scan at Gate Turnstile</div>
               <p className="text-[11px]">Hold barcode 5-10cm from scanner for entry.</p>
               <div className="text-[10px] font-mono text-secondary pt-1">
                 Pass Price: {selectedQrPass.price?.toFixed(2)} EGP
@@ -1019,7 +1356,9 @@ export const MyTicketsPage = () => {
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 print:hidden">
           <div className="bg-surface-container-lowest border border-outline-variant rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4">
             <div className="flex items-center justify-between border-b border-surface-variant pb-3">
-              <h3 className="font-headline-md text-lg font-bold text-on-surface">Transfer Stadium Pass</h3>
+              <h3 className="font-headline-md text-lg font-bold text-on-surface">
+                Transfer {selectedTicketForTransfer.isEvent ? 'Event' : 'Stadium'} Pass
+              </h3>
               <button
                 onClick={() => setSelectedTicketForTransfer(null)}
                 className="text-secondary hover:text-on-surface"
@@ -1031,15 +1370,21 @@ export const MyTicketsPage = () => {
             <div className="bg-surface p-3.5 rounded-xl border border-surface-variant text-xs space-y-2">
               <div className="flex items-center justify-between gap-2">
                 <span className="font-bold text-sm text-on-surface">
-                  {selectedTicketForTransfer.title || 'Stadium Match Pass'}
+                  {selectedTicketForTransfer.title || 'Digital Pass'}
                 </span>
                 <span className="bg-primary/10 text-primary font-bold px-2 py-0.5 rounded text-[11px] shrink-0">
                   {selectedTicketForTransfer.gate}
                 </span>
               </div>
+              {selectedTicketForTransfer.artist && (
+                <p className="text-tertiary font-semibold text-[11px]">
+                  Artist: {selectedTicketForTransfer.artist}
+                </p>
+              )}
               {(selectedTicketForTransfer.competition || selectedTicketForTransfer.round) && (
                 <p className="text-secondary text-[11px]">
-                  {selectedTicketForTransfer.competition} {selectedTicketForTransfer.round ? `• ${selectedTicketForTransfer.round}` : ''}
+                  {selectedTicketForTransfer.competition}{' '}
+                  {selectedTicketForTransfer.round ? `• ${selectedTicketForTransfer.round}` : ''}
                 </p>
               )}
               <div className="pt-1.5 border-t border-surface-variant flex items-center justify-between text-secondary">
@@ -1048,51 +1393,59 @@ export const MyTicketsPage = () => {
                   <span className="font-bold text-on-surface">{selectedTicketForTransfer.holderName}</span>
                 </div>
                 <div className="text-right">
-                  <span className="text-[10px] uppercase block">Price</span>
-                  <span className="font-bold text-pitch-green">{selectedTicketForTransfer.price?.toFixed(2)} EGP</span>
+                  <span className="text-[10px] uppercase block">Pass ID</span>
+                  <span className="font-mono text-primary font-bold">
+                    #{selectedTicketForTransfer.ticketPassId || selectedTicketForTransfer.id}
+                  </span>
                 </div>
               </div>
-              <p className="text-primary font-mono font-semibold pt-0.5">{selectedTicketForTransfer.currentFanId}</p>
             </div>
 
             {transferSuccess ? (
-              <div className="bg-pitch-green/10 text-pitch-green p-4 rounded-xl text-center space-y-1">
-                <span className="material-symbols-outlined text-3xl">check_circle</span>
-                <h4 className="font-bold text-sm">Pass Transferred Successfully!</h4>
-                <p className="text-xs">The pass has been reassigned to the recipient Fan ID.</p>
+              <div className="p-4 rounded-xl bg-pitch-green/10 text-pitch-green border border-pitch-green/30 text-center font-bold text-sm flex items-center justify-center gap-2">
+                <span className="material-symbols-outlined text-lg">check_circle</span>
+                <span>Pass successfully transferred to {targetFanId}!</span>
               </div>
             ) : (
               <form onSubmit={handleTransfer} className="space-y-4">
-                <div>
-                  <label className="block text-xs font-semibold text-on-surface mb-1">
-                    Recipient's Fan ID
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-secondary block">
+                    Recipient Fan ID • بطاقة المشجع للمستلم
                   </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. TZK-378584"
-                    value={targetFanId}
-                    onChange={(e) => setTargetFanId(e.target.value)}
-                    className="w-full bg-surface-container-lowest text-on-surface border border-outline-variant rounded-xl p-3 text-sm focus:border-primary focus:outline-none font-mono"
-                  />
-                  <p className="text-[11px] text-secondary mt-1">
-                    Transferring is permanent and reassigns turnstile credentials.
+                  <div className="relative">
+                    <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-secondary text-base">
+                      badge
+                    </span>
+                    <input
+                      type="text"
+                      placeholder="e.g. TZK-894215 or 894215"
+                      value={targetFanId}
+                      onChange={(e) => setTargetFanId(e.target.value)}
+                      required
+                      autoFocus
+                      className="w-full bg-surface-container-low border border-outline-variant/60 rounded-xl pl-9 pr-4 py-2.5 text-xs text-on-surface font-mono uppercase focus:outline-none focus:border-primary"
+                    />
+                  </div>
+                  <p className="text-[11px] text-secondary">
+                    Pass will be immediately transferred to the designated Fan ID account.
                   </p>
                 </div>
 
-                <div className="flex justify-end gap-3 pt-2">
+                <div className="flex items-center justify-end gap-2 pt-2 border-t border-surface-variant">
                   <button
                     type="button"
                     onClick={() => setSelectedTicketForTransfer(null)}
-                    className="px-4 py-2 text-sm text-secondary hover:text-on-surface"
+                    className="px-4 py-2 rounded-xl text-xs font-semibold text-secondary hover:text-on-surface hover:bg-surface-container transition-colors"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="px-5 py-2.5 bg-primary text-white font-bold rounded-xl hover:bg-primary-container text-sm"
+                    disabled={!targetFanId.trim()}
+                    className="px-5 py-2 rounded-xl text-xs font-bold bg-primary hover:bg-primary-container text-white transition-all shadow-xs disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
                   >
-                    Confirm Transfer
+                    <span className="material-symbols-outlined text-sm">send</span>
+                    <span>Confirm Transfer</span>
                   </button>
                 </div>
               </form>

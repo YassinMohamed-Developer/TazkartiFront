@@ -260,8 +260,71 @@ export const TicketVerifyPage = () => {
           </div>
 
           {/* Match Fixture Banner */}
+          {/* Event or Match Banner */}
           <div className="p-5 md:p-7 space-y-5">
-            {(ticket.homeTeam || ticket.awayTeam) && (
+            {/* 1. Entertainment Event Banner */}
+            {(ticket.isEvent || ticket.type === 'event' || ticket.artist || ticket.tierName) ? (
+              <div className="bg-gradient-to-r from-surface-container-high via-surface-container to-surface-container-high p-5 rounded-2xl border border-surface-variant/90 relative overflow-hidden shadow-sm">
+                <div className="absolute top-0 right-1/4 w-40 h-40 bg-tertiary/10 rounded-full blur-3xl pointer-events-none"></div>
+
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                  <div className="flex items-center gap-3.5">
+                    <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-tertiary/20 to-purple-600/30 border border-tertiary/30 p-2 shadow-xs flex items-center justify-center shrink-0 text-tertiary">
+                      <span className="material-symbols-outlined text-3xl">mic</span>
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[10px] text-tertiary font-bold uppercase tracking-wider font-label-sm">
+                          Headliner • الفنان
+                        </span>
+                        <span className="w-1.5 h-1.5 rounded-full bg-tertiary"></span>
+                        <span className="text-[10px] text-secondary font-semibold">Live Event Pass</span>
+                      </div>
+                      <h3 className="font-headline-md text-xl font-bold text-on-surface">
+                        {ticket.artist || 'Featured Performer'}
+                      </h3>
+                      <h4 className="text-sm font-semibold text-secondary flex items-center gap-1.5 mt-0.5">
+                        <span className="material-symbols-outlined text-sm text-tertiary">festival</span>
+                        <span>{ticket.title}</span>
+                      </h4>
+                    </div>
+                  </div>
+
+                  <div className="bg-surface-container-lowest/80 backdrop-blur-sm px-3.5 py-2 rounded-xl border border-surface-variant/80 shrink-0 text-left sm:text-right">
+                    <div className="flex items-center gap-1.5 text-xs font-bold text-on-surface">
+                      <span className="material-symbols-outlined text-sm text-tertiary">calendar_month</span>
+                      <span>{ticket.date} • {ticket.time}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-xs text-secondary mt-0.5">
+                      <span className="material-symbols-outlined text-sm text-tertiary">location_on</span>
+                      <span>{ticket.city}{ticket.venueName ? ` • ${ticket.venueName}` : ''}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Included Perks Strip */}
+                {ticket.perks && ticket.perks.length > 0 && (
+                  <div className="mt-4 pt-3 border-t border-surface-variant/70">
+                    <span className="text-[10px] font-bold text-secondary uppercase tracking-wider block mb-1.5 flex items-center gap-1">
+                      <span className="material-symbols-outlined text-xs text-pitch-green">verified</span>
+                      <span>Included Perks ({ticket.tierName || 'VIP Pass'})</span>
+                    </span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {ticket.perks.map((perk, pIdx) => (
+                        <span
+                          key={pIdx}
+                          className="bg-surface-container-lowest text-[11px] font-semibold text-on-surface px-2.5 py-1 rounded-lg border border-surface-variant/60 flex items-center gap-1"
+                        >
+                          <span className="material-symbols-outlined text-xs text-pitch-green">check</span>
+                          <span>{perk}</span>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (ticket.homeTeam || ticket.awayTeam) ? (
+              /* 2. Football Match Fixture Banner */
               <div className="bg-gradient-to-r from-surface via-surface-container-low to-surface p-5 rounded-2xl border border-surface-variant/80 relative overflow-hidden">
                 <div className="absolute top-0 right-1/4 w-32 h-32 bg-primary/5 rounded-full blur-3xl pointer-events-none"></div>
 
@@ -324,7 +387,7 @@ export const TicketVerifyPage = () => {
                   )}
                 </div>
               </div>
-            )}
+            ) : null}
 
             {/* Ticket Details Grid */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -357,17 +420,24 @@ export const TicketVerifyPage = () => {
               </div>
             </div>
 
-            {/* Competition & Round Tags */}
+            {/* Tags / Tier info */}
             <div className="flex flex-wrap items-center justify-center gap-2">
+              {ticket.tierName && (
+                <span className="bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-400/40 text-xs font-bold px-3 py-1.5 rounded-full flex items-center gap-1">
+                  <span className="material-symbols-outlined text-sm text-amber-500">stars</span>
+                  <span>{ticket.tierName}</span>
+                </span>
+              )}
+              {ticket.category && (
+                <span className="bg-tertiary/10 text-tertiary border border-tertiary/20 text-xs font-semibold px-3 py-1.5 rounded-full flex items-center gap-1.5">
+                  <span className="material-symbols-outlined text-sm">music_note</span>
+                  <span>{ticket.category}</span>
+                </span>
+              )}
               {ticket.competition && (
                 <span className="bg-surface-container border border-surface-variant text-on-surface text-xs font-semibold px-3 py-1.5 rounded-full flex items-center gap-1.5">
                   <span className="material-symbols-outlined text-sm text-primary">emoji_events</span>
                   <span>{ticket.competition}</span>
-                </span>
-              )}
-              {ticket.round && (
-                <span className="bg-primary/10 text-primary border border-primary/20 text-xs font-bold px-3 py-1.5 rounded-full">
-                  {ticket.round}
                 </span>
               )}
               <span className="bg-surface-container border border-surface-variant text-secondary text-xs font-semibold px-3 py-1.5 rounded-full flex items-center gap-1.5">
