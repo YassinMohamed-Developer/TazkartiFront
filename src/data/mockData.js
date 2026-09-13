@@ -165,80 +165,95 @@ export const MOCK_MATCHES = [
 
 export const MOCK_EVENTS = [
   {
-    id: "event-1",
+    id: 1,
+    title: "Summer Vibes Festival",
+    category: 1,
+    tag: "Festival",
+    artist: "The Neon Lights",
+    eventDate: "2026-10-15T00:00:00",
+    eventTime: "18:00",
+    venueId: null,
+    venueName: "Chicago Outdoor Arena",
+    city: "Chicago",
+    minPrice: 75.00,
+    bannerImage: "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?auto=format&fit=crop&w=1200&q=80",
+    description: "An outdoor music festival featuring top indie bands.",
+    isActive: true,
+    tierId: [1, 2],
+    nameOfTicketTier: ["General Admission", "VIP Pass"],
+    price: [75.00, 150.00],
+    perks: [
+      "Access to main festival grounds and food trucks",
+      "Express entry, VIP lounge access, 2 free drink tickets"
+    ]
+  },
+  {
+    id: 2,
+    title: "Acoustic Jazz Night",
+    category: 2,
+    tag: "Jazz",
+    artist: "Miles Harrison Quartet",
+    eventDate: "2026-11-05T00:00:00",
+    eventTime: "20:30",
+    venueId: null,
+    venueName: "French Quarter Jazz Hall",
+    city: "New Orleans",
+    minPrice: 25.50,
+    bannerImage: "https://images.unsplash.com/photo-1511192336575-5a79af67a629?auto=format&fit=crop&w=1200&q=80",
+    description: "A relaxing evening of smooth acoustic jazz.",
+    isActive: true,
+    tierId: [3, 4],
+    nameOfTicketTier: ["Standard Seating", "Premium Table"],
+    price: [25.50, 60.00],
+    perks: [
+      null,
+      "Front row table, dedicated server, complimentary appetizers"
+    ]
+  },
+  {
+    id: 3,
+    title: "Symphony Under the Stars",
+    category: 3,
+    tag: "Classical",
+    artist: "City Symphony Orchestra",
+    eventDate: "2026-12-10T00:00:00",
+    eventTime: "19:00",
+    venueId: null,
+    venueName: "Central Park Amphitheater",
+    city: "New York",
+    minPrice: 45.00,
+    bannerImage: "https://images.unsplash.com/photo-1465847899084-d164df4dedc6?auto=format&fit=crop&w=1200&q=80",
+    description: "Experience classical masterpieces in an open-air amphitheater.",
+    isActive: false,
+    tierId: [5, 6],
+    nameOfTicketTier: ["Lawn Seating", "Golden Circle"],
+    price: [45.00, 120.00],
+    perks: [
+      "Bring your own blanket seating",
+      "Reserved premium seating, meet and greet with conductor"
+    ]
+  },
+  {
+    id: 4,
     title: "Amr Diab Live at New Alamein Arena",
-    category: "Music & Concerts",
+    category: 1,
     tag: "Trending",
     artist: "Amr Diab (El Hadaba)",
-    date: "20 Aug 2026",
-    time: "22:00 CLT",
-    venue: "New Alamein Arena",
-    city: "New Alamein, Egypt",
+    eventDate: "2026-08-20T00:00:00",
+    eventTime: "22:00",
+    venueId: null,
+    venueName: "New Alamein Arena",
+    city: "New Alamein",
     minPrice: 750,
-    bannerImage: "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?auto=format&fit=crop&w=1200&q=80",
+    bannerImage: "https://images.unsplash.com/photo-1540039155733-5bb30b53aa14?auto=format&fit=crop&w=1200&q=80",
     description: "Experience the biggest concert of the Mediterranean summer featuring Egypt's megastar Amr Diab with a world-class light and laser show.",
-    tiers: [
-      { id: "tier-regular", name: "Regular Standing Area", price: 750, perks: ["General Admission Access", "Food & Beverage Village Access"] },
-      { id: "tier-fanpit", name: "Fan Pit (Front of Stage)", price: 1500, perks: ["Stage-Front Access", "Dedicated Fast-Track Entrance", "Exclusive Fan Badge"] },
-      { id: "tier-vip", name: "VIP High Tables & Lounge", price: 3500, perks: ["Raised VIP Platform", "Complimentary Gourmet Catering", "Valet Parking", "VIP Restrooms"] },
-      { id: "tier-royal", name: "Royal Lounges (Min 6 Pax)", price: 8000, perks: ["Private Luxury Booth", "Dedicated Butler Service", "Backstage Lounge Access"] }
-    ]
-  },
-  {
-    id: "event-2",
-    title: "Omar Khairat Musical Symphony",
-    category: "Classical & Orchestra",
-    tag: "High Demand",
-    artist: "Maestro Omar Khairat",
-    date: "10 Sep 2026",
-    time: "20:30 CLT",
-    venue: "Grand Egyptian Museum (GEM)",
-    city: "Giza, Egypt",
-    minPrice: 600,
-    bannerImage: "https://images.unsplash.com/photo-1465847899084-d164df4dedc6?auto=format&fit=crop&w=1200&q=80",
-    description: "An enchanting night amidst the ancient artifacts with Maestro Omar Khairat and the Cairo Symphony Orchestra.",
-    tiers: [
-      { id: "tier-bronze", name: "Bronze Seating", price: 600, perks: ["Upper Hall Seating", "GEM Evening Access"] },
-      { id: "tier-silver", name: "Silver Seating", price: 1200, perks: ["Mid Hall Seating", "GEM Exhibition Tour Included"] },
-      { id: "tier-gold", name: "Gold Royal Seating", price: 2200, perks: ["Front Rows Orchestra Seating", "Cocktail Reception", "Signed Souvenir Program"] }
-    ]
-  },
-  {
-    id: "event-3",
-    title: "Cairokee - Empire 5 Arena Tour",
-    category: "Rock & Indie",
-    tag: "Selling Fast",
-    artist: "Cairokee",
-    date: "03 Oct 2026",
-    time: "21:00 CLT",
-    venue: "Zayed Central Park Arena",
-    city: "Sheikh Zayed, Giza",
-    minPrice: 500,
-    bannerImage: "https://images.unsplash.com/photo-1501386761578-eac5c94b800a?auto=format&fit=crop&w=1200&q=80",
-    description: "Cairokee returns with their massive 'Empire 5' concert series featuring all their iconic anthems and brand-new tracks.",
-    tiers: [
-      { id: "tier-regular", name: "General Admission", price: 500, perks: ["Entry to Festival Grounds"] },
-      { id: "tier-fanpit", name: "Golden Circle Wave", price: 1000, perks: ["Front of Stage Wave Access", "Festival Wristband"] },
-      { id: "tier-vip", name: "VIP Lounge Deck", price: 2400, perks: ["Elevated Lounge", "Open Soft Drink Bar", "Fast Track Gate"] }
-    ]
-  },
-  {
-    id: "event-4",
-    title: "The Elite Stand-Up Comedy Special",
-    category: "Comedy & Theater",
-    tag: "Limited Seats",
-    artist: "The Elite Comedy Crew",
-    date: "18 Sep 2026",
-    time: "20:00 CLT",
-    venue: "The Marquee - Cairo Festival City",
-    city: "New Cairo, Egypt",
-    minPrice: 350,
-    bannerImage: "https://images.unsplash.com/photo-1585699324551-f6c309eedeca?auto=format&fit=crop&w=1200&q=80",
-    description: "Egypt's top standup comedy group with a 2-hour non-stop laughter show.",
-    tiers: [
-      { id: "tier-balcony", name: "Balcony Seating", price: 350, perks: ["Standard Theater View"] },
-      { id: "tier-stalls", name: "Orchestra Stalls", price: 650, perks: ["Ground Floor Central Seating"] },
-      { id: "tier-vip", name: "VIP Front Row", price: 1100, perks: ["First 3 Rows", "Meet & Greet After Show"] }
+    isActive: true,
+    tierId: [7, 8],
+    nameOfTicketTier: ["Regular Standing", "VIP Lounge Deck"],
+    price: [750, 3500],
+    perks: [
+      "General Admission Access, Food Village Access",
+      "VIP Platform, Valet Parking, Fast Track Entry"
     ]
   }
 ];

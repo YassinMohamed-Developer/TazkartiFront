@@ -668,160 +668,212 @@ export const getAllMatches = async () => {
 export const normalizeTicketPass = (ticket, index = 0) => {
   if (!ticket || typeof ticket !== 'object') return null;
 
-  const rawBookingId = ticket.bookingOrderId ?? ticket.bookingId ?? ticket.id;
-  const bookingOrderId = toNullablePositiveInteger(rawBookingId) || (index + 1);
+  try {
+    const details = ticket.details && typeof ticket.details === 'object' ? ticket.details : {};
 
-  const rawFanId = String(ticket.currentFanId || ticket.fanId || '').trim();
-  // Strip optional "Fan Id :" prefix if returned like "Fan Id : TZK-378584"
-  const cleanFanId = rawFanId.replace(/^Fan\s*Id\s*:\s*/i, '').trim();
+    const rawBookingId = ticket.bookingOrderId ?? ticket.bookingId ?? details.bookingOrderId ?? ticket.id;
+    const bookingOrderId = toNullablePositiveInteger(rawBookingId) || (index + 1);
 
-  const holderName = (ticket.holderName || ticket.name || 'Fan Pass Holder').trim();
-  const price = Number(ticket.price) >= 0 ? Number(ticket.price) : 0;
-  const gate = ticket.gate ? String(ticket.gate).trim() : 'Gate 1';
+    const rawFanId = String(ticket.currentFanId || ticket.fanId || details.currentFanId || '').trim();
+    // Strip optional "Fan Id :" prefix if returned like "Fan Id : TZK-378584"
+    const cleanFanId = rawFanId.replace(/^Fan\s*Id\s*:\s*/i, '').trim();
 
-  const rawRow = ticket.row !== null && ticket.row !== undefined && String(ticket.row).trim() !== ''
-    ? String(ticket.row).trim()
-    : null;
+    const holderName = String(ticket.holderName || details.holderName || ticket.name || 'Fan Pass Holder').trim();
+    const price = Number(ticket.price ?? details.price) >= 0 ? Number(ticket.price ?? details.price) : 0;
+    const gate = String(ticket.gate || details.gate || 'Gate 1').trim();
 
-  const rawSeat = ticket.seatNumber !== null && ticket.seatNumber !== undefined && String(ticket.seatNumber).trim() !== ''
-    ? String(ticket.seatNumber).trim()
-    : null;
+    const rawRow = (ticket.row ?? details.row) !== null && (ticket.row ?? details.row) !== undefined && String(ticket.row ?? details.row).trim() !== ''
+      ? String(ticket.row ?? details.row).trim()
+      : null;
 
-  const isActive = ticket.isActive !== undefined
-    ? Boolean(ticket.isActive)
-    : ticket.IsActive !== undefined
-    ? Boolean(ticket.IsActive)
-    : true;
+    const rawSeat = (ticket.seatNumber ?? details.seatNumber ?? details.seat) !== null && (ticket.seatNumber ?? details.seatNumber ?? details.seat) !== undefined && String(ticket.seatNumber ?? details.seatNumber ?? details.seat).trim() !== ''
+      ? String(ticket.seatNumber ?? details.seatNumber ?? details.seat).trim()
+      : null;
 
-  const statusNum = Number.isInteger(Number(ticket.status)) ? Number(ticket.status) : null;
-  const statusStr = String(ticket.status || '').toLowerCase().trim();
+    const isActive = ticket.isActive !== undefined
+      ? Boolean(ticket.isActive)
+      : ticket.IsActive !== undefined
+      ? Boolean(ticket.IsActive)
+      : details.isActive !== undefined
+      ? Boolean(details.isActive)
+      : true;
 
-  const isConfirmed = statusNum === 1 || statusStr === '1' || statusStr === 'confirmed' || statusStr === 'active';
-  const isTransferred = statusNum === 2 || statusStr === '2' || statusStr === 'transferred';
-  const isAttended = statusNum === 3 || statusStr === '3' || statusStr === 'attended';
-  const isCancelled = statusNum === 4 || statusStr === '4' || statusStr === 'cancelled' || statusStr === 'canceled';
+    const statusNum = Number.isInteger(Number(ticket.status ?? details.status)) ? Number(ticket.status ?? details.status) : null;
+    const statusStr = String(ticket.status ?? details.status ?? '').toLowerCase().trim();
 
-  const status = isCancelled ? 4 : isAttended ? 3 : isTransferred ? 2 : isConfirmed ? 1 : (statusNum ?? 1);
-  const statusLabel = !isActive
-    ? 'Inactive Pass'
-    : isCancelled
-    ? 'Cancelled'
-    : isAttended
-    ? 'Attended'
-    : isTransferred
-    ? 'Transferred'
-    : 'Active Pass';
+    const isConfirmed = statusNum === 1 || statusStr === '1' || statusStr === 'confirmed' || statusStr === 'active';
+    const isTransferred = statusNum === 2 || statusStr === '2' || statusStr === 'transferred';
+    const isAttended = statusNum === 3 || statusStr === '3' || statusStr === 'attended';
+    const isCancelled = statusNum === 4 || statusStr === '4' || statusStr === 'cancelled' || statusStr === 'canceled';
 
-  // New match attributes from TicketDto
-  const competition = (ticket.competition || ticket.Competition || '').trim() || null;
-  const round = (ticket.round || ticket.Round || '').trim() || null;
-  const homeTeamName = (ticket.homeTeam || ticket.HomeTeam || '').trim() || null;
-  const awayTeamName = (ticket.awayTeam || ticket.AwayTeam || '').trim() || null;
+    const status = isCancelled ? 4 : isAttended ? 3 : isTransferred ? 2 : isConfirmed ? 1 : (statusNum ?? 1);
+    const statusLabel = !isActive
+      ? 'Inactive Pass'
+      : isCancelled
+      ? 'Cancelled'
+      : isAttended
+      ? 'Attended'
+      : isTransferred
+      ? 'Transferred'
+      : 'Active Pass';
 
-  const isEvent = Boolean(
-    ticket.eventId ||
-    ticket.EventId ||
-    ticket.tierName ||
-    ticket.tierId ||
-    ticket.artist ||
-    ticket.type === 'event' ||
-    (ticket.competition && ticket.competition.toLowerCase().includes('entertainment'))
-  );
+    const rawType = String(ticket.type || details.type || '').trim().toLowerCase();
+    const isEvent = rawType === 'event' || Boolean(
+      details.eventId ||
+      ticket.eventId ||
+      ticket.EventId ||
+      details.tierName ||
+      ticket.tierName ||
+      details.tierId ||
+      ticket.tierId ||
+      details.artist ||
+      ticket.artist ||
+      (details.competition && details.competition.toLowerCase().includes('entertainment')) ||
+      (ticket.competition && ticket.competition.toLowerCase().includes('entertainment'))
+    );
 
-  const categoryNum = Number(ticket.category) || 1;
-  const categoryLabel = getEventCategoryLabel(ticket.category);
-  const artist = (ticket.artist || '').trim();
-  const tierName = (ticket.tierName || ticket.tier?.name || (ticket.tierId ? `Tier ${ticket.tierId}` : 'VIP Pass')).trim();
-
-  let perksList = [];
-  if (Array.isArray(ticket.perks)) {
-    perksList = ticket.perks.filter(p => p !== null && p !== undefined && String(p).trim() !== '');
-  } else if (typeof ticket.perks === 'string' && ticket.perks.trim()) {
-    perksList = ticket.perks.includes(',')
-      ? ticket.perks.split(',').map(s => s.trim()).filter(Boolean)
-      : [ticket.perks.trim()];
-  }
-
-  const rawEventDate = ticket.eventDate || ticket.date;
-  const eventDateFormatted = formatDate(rawEventDate);
-  const eventTime = ticket.eventTime || ticket.time || '18:00';
-  const city = (ticket.city || 'Chicago').trim();
-  const venue = (ticket.venueName || ticket.venue || `${city} Arena`).trim();
-
-  const bannerImage = (ticket.bannerImage && typeof ticket.bannerImage === 'string' && ticket.bannerImage.trim())
-    ? ticket.bannerImage.trim()
-    : (DEFAULT_EVENT_IMAGES[categoryNum] || FALLBACK_EVENT_IMAGES_BY_INDEX[0]);
-
-  const title = (ticket.title || ticket.Title || '').trim()
-    || (homeTeamName && awayTeamName ? `${homeTeamName} vs ${awayTeamName}` : (isEvent ? 'Live Entertainment Event' : 'Match Pass'));
-
-  const homeTeam = homeTeamName ? createTeam(homeTeamName) : null;
-  const awayTeam = awayTeamName ? createTeam(awayTeamName) : null;
-
-  const ticketPassId = ticket.ticketPassId ?? ticket.id ?? ticket.Id ?? ticket.ticketId ?? (ticket.bookingOrderId || bookingOrderId);
-  const verifyUrl = `${window.location.origin}/ticket/verify/${ticketPassId}`;
-  const qrData = verifyUrl;
-  const qrCode = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(qrData)}`;
-
-  return {
-    ...ticket,
-    ticketPassId,
-    id: ticket.id ?? `PASS-${bookingOrderId}-${index}`,
-    bookingOrderId,
-    isActive,
-    currentFanId: rawFanId || (cleanFanId ? `Fan Id : ${cleanFanId}` : 'Fan Id : TZK-000000'),
-    cleanFanId: cleanFanId || 'TZK-000000',
-    holderName,
-    row: rawRow,
-    seatNumber: rawSeat,
-    price,
-    gate,
-    status,
-    statusLabel,
-    competition,
-    round,
-    title,
-    homeTeam: homeTeamName,
-    awayTeam: awayTeamName,
-    homeTeamDetails: homeTeam,
-    awayTeamDetails: awayTeam,
-    qrData,
-    qrCode,
-    isGeneralAdmission: !rawRow && !rawSeat,
     // Entertainment Event attributes
-    isEvent,
-    type: isEvent ? 'event' : (ticket.type || 'match'),
-    eventId: ticket.eventId ?? ticket.EventId ?? null,
-    artist: isEvent ? artist : null,
-    category: isEvent ? categoryLabel : competition,
-    categoryEnum: isEvent ? categoryNum : null,
-    tierId: ticket.tierId ?? null,
-    tierName: isEvent ? tierName : null,
-    perks: perksList,
-    date: isEvent ? eventDateFormatted : (ticket.date || '---'),
-    time: isEvent ? eventTime : (ticket.time || '---'),
-    city,
-    venue,
-    venueName: ticket.venueName || null,
-    bannerImage,
-  };
-};
+    const eventId = toNullablePositiveInteger(details.eventId ?? ticket.eventId ?? ticket.EventId) || null;
+    const categoryNum = Number(details.category ?? ticket.category) || 1;
+    const categoryLabel = getEventCategoryLabel(details.category ?? ticket.category);
+    const artist = String(details.artist || ticket.artist || '').trim();
+    const tierId = toNullablePositiveInteger(details.tierId ?? ticket.tierId) || null;
+    const tierName = String(details.tierName || ticket.tierName || ticket.tier?.name || (tierId ? `Tier ${tierId}` : 'VIP Pass')).trim();
 
-/**
- * Fetches an Entertainment Event ticket pass by TicketPass Id.
- * GET https://localhost:7020/api/TicketPass/GetEntertainmentEventTicket/{id}
- */
-export const getEntertainmentTicketById = async (id) => {
-  const response = await apiRequest(`/TicketPass/GetEntertainmentEventTicket/${id}`, {
-    method: 'GET',
-  });
-  if (response?.data) {
+    // Match attributes from details or ticket
+    const competition = String(details.competition || ticket.competition || ticket.Competition || '').trim() || (isEvent ? null : 'Egyptian Premier League');
+    const round = String(details.round || ticket.round || ticket.Round || '').trim() || null;
+    const homeTeamName = String(details.homeTeam || ticket.homeTeam || ticket.HomeTeam || '').trim() || null;
+    const awayTeamName = String(details.awayTeam || ticket.awayTeam || ticket.AwayTeam || '').trim() || null;
+    const categoryId = toNullablePositiveInteger(details.categoryId ?? ticket.categoryId) || null;
+    const categoryName = String(
+      details.categoryName ||
+      ticket.categoryName ||
+      (isEvent ? categoryLabel : (details.category ? `Category ${details.category}` : 'Category 1'))
+    ).trim();
+    const block = String(details.block || ticket.block || 'Section B-12').trim();
+    const kickoffTime = String(details.kickoffTime || ticket.kickoffTime || details.time || ticket.time || '20:00').trim();
+    const gateOpenTime = String(details.gateOpenTime || ticket.gateOpenTime || '16:00').trim();
+
+    let perksList = [];
+    const rawPerks = details.perks ?? ticket.perks;
+    if (Array.isArray(rawPerks)) {
+      perksList = rawPerks.filter(p => p !== null && p !== undefined && String(p).trim() !== '');
+    } else if (typeof rawPerks === 'string' && rawPerks.trim()) {
+      perksList = rawPerks.includes(',')
+        ? rawPerks.split(',').map(s => s.trim()).filter(Boolean)
+        : [rawPerks.trim()];
+    }
+    if (isEvent && perksList.length === 0) {
+      perksList = [
+        tierName ? `${tierName} Admission` : 'Standard Event Entry',
+        'Access to Event Venue & Hospitality Areas',
+      ];
+    }
+
+    // Dates & Times
+    const rawDate = isEvent
+      ? (details.eventDate || ticket.eventDate || details.date || ticket.date)
+      : (details.matchDate || ticket.matchDate || details.date || ticket.date);
+    const formattedDate = formatDate(rawDate);
+
+    const formattedTime = isEvent
+      ? (details.eventTime || ticket.eventTime || details.time || ticket.time || '20:30')
+      : kickoffTime;
+
+    const city = String(details.city || ticket.city || (isEvent ? 'New Orleans' : 'Cairo')).trim();
+    const venue = String(details.venueName || ticket.venueName || ticket.venue || `${city} ${isEvent ? 'Arena' : 'Stadium'}`).trim();
+
+    const rawBanner = details.bannerImage || ticket.bannerImage;
+    const bannerImage = (rawBanner && typeof rawBanner === 'string' && rawBanner.trim())
+      ? rawBanner.trim()
+      : isEvent
+      ? (DEFAULT_EVENT_IMAGES[categoryNum] || FALLBACK_EVENT_IMAGES_BY_INDEX[index % FALLBACK_EVENT_IMAGES_BY_INDEX.length])
+      : (FALLBACK_EVENT_IMAGES_BY_INDEX[index % FALLBACK_EVENT_IMAGES_BY_INDEX.length] || DEFAULT_EVENT_IMAGES[1]);
+
+    const rawTitle = String(details.title || ticket.title || ticket.Title || '').trim();
+    const title = rawTitle
+      || (homeTeamName && awayTeamName
+        ? `${homeTeamName} vs ${awayTeamName}`
+        : (isEvent ? (artist ? `${artist} Live` : 'Live Entertainment Event') : 'Match Pass'));
+
+    const homeTeam = homeTeamName ? createTeam(homeTeamName) : null;
+    const awayTeam = awayTeamName ? createTeam(awayTeamName) : null;
+
+    const ticketPassId = ticket.id ?? ticket.ticketPassId ?? ticket.Id ?? ticket.ticketId ?? (ticket.bookingOrderId || bookingOrderId);
+    const verifyUrl = `${window.location.origin}/ticket/verify/${ticketPassId}`;
+    const qrData = verifyUrl;
+    const qrCode = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(qrData)}`;
+
     return {
-      ...response,
-      data: normalizeTicketPass(response.data),
+      ...ticket,
+      ...details,
+      details,
+      ticketPassId,
+      id: ticket.id ?? `PASS-${bookingOrderId}-${index}`,
+      bookingOrderId,
+      isActive,
+      currentFanId: rawFanId || (cleanFanId ? `Fan Id : ${cleanFanId}` : 'Fan Id : TZK-000000'),
+      cleanFanId: cleanFanId || 'TZK-000000',
+      holderName,
+      row: rawRow,
+      seatNumber: rawSeat,
+      price,
+      gate,
+      status,
+      statusLabel,
+      competition,
+      round,
+      title,
+      homeTeam: homeTeamName,
+      awayTeam: awayTeamName,
+      homeTeamDetails: homeTeam,
+      awayTeamDetails: awayTeam,
+      qrData,
+      qrCode,
+      isGeneralAdmission: !rawRow && !rawSeat,
+      // Match specific attributes
+      matchId: isEvent ? null : (details.matchId ?? ticket.matchId ?? null),
+      categoryId,
+      categoryName,
+      block,
+      kickoffTime,
+      gateOpenTime,
+      // Entertainment Event attributes
+      isEvent,
+      type: isEvent ? 'event' : 'match',
+      eventId,
+      artist: isEvent ? artist : null,
+      category: isEvent ? categoryLabel : (categoryName || competition),
+      categoryEnum: isEvent ? categoryNum : null,
+      tierId: isEvent ? tierId : null,
+      tierName: isEvent ? tierName : null,
+      perks: perksList,
+      date: formattedDate,
+      time: formattedTime,
+      city,
+      venue,
+      venueName: details.venueName || ticket.venueName || null,
+      bannerImage,
+    };
+  } catch (err) {
+    console.warn('[Tazkarti Service] Error normalizing ticket pass at index', index, err, ticket);
+    const fallbackId = ticket.id ?? ticket.ticketPassId ?? (index + 1);
+    return {
+      ...ticket,
+      id: fallbackId,
+      ticketPassId: fallbackId,
+      bookingOrderId: ticket.bookingOrderId ?? fallbackId,
+      title: ticket.title || ticket.details?.title || 'Event / Match Pass',
+      holderName: ticket.holderName || ticket.details?.holderName || 'Fan Pass Holder',
+      gate: ticket.gate || ticket.details?.gate || 'Gate 1',
+      price: Number(ticket.price ?? ticket.details?.price) || 0,
+      status: ticket.status ?? 1,
+      statusLabel: 'Active Pass',
+      isActive: ticket.isActive ?? true,
+      qrCode: `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(`${window.location.origin}/ticket/verify/${fallbackId}`)}`,
     };
   }
-  return response;
 };
 
 /**
@@ -848,31 +900,20 @@ export const getAllTicketPasses = async () => {
 };
 
 /**
- * Fetches a single ticket pass by TicketPass Id.
- * Checks /TicketPass/GetTicket/{id}, and if not found, checks /TicketPass/GetEntertainmentEventTicket/{id}
+ * Fetches a single ticket pass by TicketPass Id (handles both Match and Entertainment Event tickets).
+ * GET https://localhost:7020/api/TicketPass/GetTicket/{id}
  */
 export const getTicketById = async (id) => {
-  try {
-    const response = await apiRequest(`/TicketPass/GetTicket/${id}`, {
-      method: 'GET',
-    });
-    if (response?.data) {
-      return {
-        ...response,
-        data: normalizeTicketPass(response.data),
-      };
-    }
-    return response;
-  } catch (err) {
-    // If standard ticket lookup fails, try entertainment event ticket lookup
-    try {
-      const eventRes = await getEntertainmentTicketById(id);
-      if (eventRes?.data) return eventRes;
-    } catch (_) {
-      // Continue to throw original error
-    }
-    throw err;
+  const response = await apiRequest(`/TicketPass/GetTicket/${id}`, {
+    method: 'GET',
+  });
+  if (response?.data) {
+    return {
+      ...response,
+      data: normalizeTicketPass(response.data),
+    };
   }
+  return response;
 };
 
 /**
@@ -970,7 +1011,11 @@ export const normalizeEntertainmentEvent = (event, index = 0) => {
 
   const isActive = event.isActive !== undefined ? Boolean(event.isActive) : true;
 
-  // Normalize ticket tiers
+  // Normalize ticket tiers - supports both backend parallel arrays and object arrays
+  const tierIds = Array.isArray(event.tierId)
+    ? event.tierId
+    : [];
+
   const tierNames = Array.isArray(event.nameOfTicketTier)
     ? event.nameOfTicketTier
     : Array.isArray(event.tiers)
@@ -993,6 +1038,7 @@ export const normalizeEntertainmentEvent = (event, index = 0) => {
     const rawPrice = prices[tierIndex];
     const tierPrice = Number(rawPrice) >= 0 ? Number(rawPrice) : (Number(event.minPrice) || 50);
     const rawPerk = perks[tierIndex];
+    const resolvedTierId = toNullablePositiveInteger(tierIds[tierIndex]) ?? (tierIndex + 1);
 
     let perksList = [];
     if (Array.isArray(rawPerk)) {
@@ -1005,16 +1051,16 @@ export const normalizeEntertainmentEvent = (event, index = 0) => {
 
     if (perksList.length === 0) {
       if (tierIndex === 0) {
-        perksList = ['Access to main festival grounds and food trucks', 'Standard event admission'];
+        perksList = ['Standard event admission', 'Access to general event grounds'];
       } else {
-        perksList = ['Premium seating area', 'Express entry & fast track access', 'Dedicated hospitality lounge'];
+        perksList = ['Premium seating area', 'Express entry & fast track access', 'Dedicated hospitality service'];
       }
     }
 
     return {
-      id: `tier-${tierIndex + 1}`,
-      tierId: tierIndex + 1,
-      name: name || `Tier ${tierIndex + 1}`,
+      id: `tier-${resolvedTierId}`,
+      tierId: resolvedTierId,
+      name: name || `Tier ${resolvedTierId}`,
       price: tierPrice,
       perks: perksList,
     };
@@ -1022,13 +1068,18 @@ export const normalizeEntertainmentEvent = (event, index = 0) => {
 
   // If no tier arrays existed but event.tiers is an array of objects
   if (tiers.length === 0 && Array.isArray(event.tiers) && event.tiers.length > 0) {
-    tiers = event.tiers.map((t, tIdx) => ({
-      id: t.id || `tier-${tIdx + 1}`,
-      tierId: tIdx + 1,
-      name: t.name || `Tier ${tIdx + 1}`,
-      price: Number(t.price) || 50,
-      perks: Array.isArray(t.perks) ? t.perks : [t.perks || 'Standard entry'],
-    }));
+    tiers = event.tiers.map((t, tIdx) => {
+      const resolvedTierId = toNullablePositiveInteger(t.tierId ?? t.id) ?? (tIdx + 1);
+      return {
+        id: `tier-${resolvedTierId}`,
+        tierId: resolvedTierId,
+        name: t.name || `Tier ${resolvedTierId}`,
+        price: Number(t.price) || 50,
+        perks: Array.isArray(t.perks)
+          ? t.perks.filter(Boolean)
+          : [t.perks || 'Standard entry'],
+      };
+    });
   }
 
   if (tiers.length === 0) {
@@ -1122,7 +1173,6 @@ export default {
   TEAM_LOGOS,
   getTicketById,
   verifyTicket,
-  getEntertainmentTicketById,
   EVENT_CATEGORY_ENUM,
   EVENT_CATEGORY_MAP,
   getEventCategoryLabel,

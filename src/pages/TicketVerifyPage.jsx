@@ -105,6 +105,8 @@ export const TicketVerifyPage = () => {
         bgColor: 'bg-tertiary/10',
         borderColor: 'border-tertiary/30',
         ringColor: 'ring-tertiary/20',
+        canValidate: false,
+        statusKey: 'attended',
       };
     }
     if (isTransferred) {
@@ -116,6 +118,8 @@ export const TicketVerifyPage = () => {
         bgColor: 'bg-golden-gate/10',
         borderColor: 'border-golden-gate/30',
         ringColor: 'ring-golden-gate/20',
+        canValidate: false,
+        statusKey: 'transferred',
       };
     }
     if (isCancelled) {
@@ -127,6 +131,8 @@ export const TicketVerifyPage = () => {
         bgColor: 'bg-error/10',
         borderColor: 'border-error/30',
         ringColor: 'ring-error/20',
+        canValidate: false,
+        statusKey: 'cancelled',
       };
     }
     if (isActive !== false && (isConfirmed || sNum === 1)) {
@@ -138,6 +144,8 @@ export const TicketVerifyPage = () => {
         bgColor: 'bg-pitch-green/10',
         borderColor: 'border-pitch-green/30',
         ringColor: 'ring-pitch-green/20',
+        canValidate: true,
+        statusKey: 'confirmed',
       };
     }
     return {
@@ -148,6 +156,8 @@ export const TicketVerifyPage = () => {
       bgColor: 'bg-surface-container',
       borderColor: 'border-outline-variant',
       ringColor: 'ring-secondary/20',
+      canValidate: false,
+      statusKey: 'inactive',
     };
   };
 
@@ -447,64 +457,151 @@ export const TicketVerifyPage = () => {
             </div>
 
             {/* Gate Verification Action */}
-            <div className="border-t border-surface-variant pt-5 space-y-3">
-              <div className="text-center">
-                <h3 className="font-bold text-sm text-on-surface">Stadium Gate Validation</h3>
-                <p className="text-xs text-secondary mt-0.5">
-                  Staff only: Validate this ticket for stadium entry. This will mark the ticket as attended.
-                </p>
-              </div>
-
-              {/* Verification Result */}
-              {verifyResult && (
-                <div className={`p-4 rounded-2xl border text-center space-y-1.5 ${verifyResult.isSuccess
-                    ? 'bg-pitch-green/10 border-pitch-green/30'
-                    : 'bg-primary/5 border-primary/20'
-                  }`}>
-                  <div className={`flex items-center justify-center gap-2 font-bold text-lg ${verifyResult.isSuccess ? 'text-pitch-green' : 'text-primary'
-                    }`}>
-                    <span className="material-symbols-outlined text-2xl">
-                      {verifyResult.isSuccess ? 'check_circle' : 'block'}
-                    </span>
-                    <span>{verifyResult.isSuccess ? 'APPROVED' : 'DENIED'}</span>
-                  </div>
-                  <p className={`text-xs font-semibold ${verifyResult.isSuccess ? 'text-pitch-green' : 'text-primary'
-                    }`}>
-                    {verifyResult.message}
+            {statusConfig?.canValidate ? (
+              <div className="border-t border-surface-variant pt-5 space-y-3">
+                <div className="text-center">
+                  <h3 className="font-bold text-sm text-on-surface">Stadium Gate Validation</h3>
+                  <p className="text-xs text-secondary mt-0.5">
+                    Staff only: Validate this ticket for stadium entry. This will mark the ticket as attended.
                   </p>
                 </div>
-              )}
 
-              {verifyError && !verifyResult && (
-                <div className="p-3 rounded-xl bg-golden-gate/10 border border-golden-gate/30 text-center">
-                  <p className="text-xs font-semibold text-golden-gate">{verifyError}</p>
-                </div>
-              )}
-
-              <button
-                onClick={handleVerifyAtGate}
-                disabled={isVerifying}
-                className="w-full py-3 bg-primary hover:bg-primary-container text-white font-bold rounded-xl text-sm transition-all flex items-center justify-center gap-2 shadow-sm cursor-pointer active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed"
-              >
-                {isVerifying ? (
-                  <>
-                    <span className="material-symbols-outlined text-lg animate-spin">progress_activity</span>
-                    <span>Validating...</span>
-                  </>
-                ) : (
-                  <>
-                    <span className="material-symbols-outlined text-lg">verified_user</span>
-                    <span>Validate Gate Entry • تأكيد الدخول</span>
-                  </>
+                {/* Verification Result */}
+                {verifyResult && (
+                  <div
+                    className={`p-4 rounded-2xl border text-center space-y-1.5 ${
+                      verifyResult.isSuccess
+                        ? 'bg-pitch-green/10 border-pitch-green/30'
+                        : 'bg-primary/5 border-primary/20'
+                    }`}
+                  >
+                    <div
+                      className={`flex items-center justify-center gap-2 font-bold text-lg ${
+                        verifyResult.isSuccess ? 'text-pitch-green' : 'text-primary'
+                      }`}
+                    >
+                      <span className="material-symbols-outlined text-2xl">
+                        {verifyResult.isSuccess ? 'check_circle' : 'block'}
+                      </span>
+                      <span>{verifyResult.isSuccess ? 'APPROVED' : 'DENIED'}</span>
+                    </div>
+                    <p
+                      className={`text-xs font-semibold ${
+                        verifyResult.isSuccess ? 'text-pitch-green' : 'text-primary'
+                      }`}
+                    >
+                      {verifyResult.message}
+                    </p>
+                  </div>
                 )}
-              </button>
-            </div>
+
+                {verifyError && !verifyResult && (
+                  <div className="p-3 rounded-xl bg-golden-gate/10 border border-golden-gate/30 text-center">
+                    <p className="text-xs font-semibold text-golden-gate">{verifyError}</p>
+                  </div>
+                )}
+
+                <button
+                  onClick={handleVerifyAtGate}
+                  disabled={isVerifying}
+                  className="w-full py-3 bg-primary hover:bg-primary-container text-white font-bold rounded-xl text-sm transition-all flex items-center justify-center gap-2 shadow-sm cursor-pointer active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  {isVerifying ? (
+                    <>
+                      <span className="material-symbols-outlined text-lg animate-spin">progress_activity</span>
+                      <span>Validating...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="material-symbols-outlined text-lg">verified_user</span>
+                      <span>Validate Gate Entry • تأكيد الدخول</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            ) : (
+              <div className="border-t border-surface-variant pt-5 space-y-3">
+                {/* Result banner if gate verification just occurred */}
+                {verifyResult && (
+                  <div
+                    className={`p-4 rounded-2xl border text-center space-y-1.5 ${
+                      verifyResult.isSuccess
+                        ? 'bg-pitch-green/10 border-pitch-green/30'
+                        : 'bg-primary/5 border-primary/20'
+                    }`}
+                  >
+                    <div
+                      className={`flex items-center justify-center gap-2 font-bold text-lg ${
+                        verifyResult.isSuccess ? 'text-pitch-green' : 'text-primary'
+                      }`}
+                    >
+                      <span className="material-symbols-outlined text-2xl">
+                        {verifyResult.isSuccess ? 'check_circle' : 'block'}
+                      </span>
+                      <span>{verifyResult.isSuccess ? 'APPROVED' : 'DENIED'}</span>
+                    </div>
+                    <p
+                      className={`text-xs font-semibold ${
+                        verifyResult.isSuccess ? 'text-pitch-green' : 'text-primary'
+                      }`}
+                    >
+                      {verifyResult.message}
+                    </p>
+                  </div>
+                )}
+
+                {/* Status Notice card informing user why gate validation is not available */}
+                <div
+                  className={`p-4 rounded-2xl border flex items-center gap-3.5 ${
+                    statusConfig?.statusKey === 'attended'
+                      ? 'bg-tertiary/10 border-tertiary/30 text-tertiary'
+                      : statusConfig?.statusKey === 'cancelled'
+                      ? 'bg-error/10 border-error/30 text-error'
+                      : statusConfig?.statusKey === 'transferred'
+                      ? 'bg-golden-gate/10 border-golden-gate/30 text-golden-gate'
+                      : 'bg-surface-container border-outline-variant text-secondary'
+                  }`}
+                >
+                  <div className="w-10 h-10 rounded-xl bg-current/10 flex items-center justify-center shrink-0">
+                    <span className="material-symbols-outlined text-2xl">
+                      {statusConfig?.statusKey === 'attended'
+                        ? 'event_available'
+                        : statusConfig?.statusKey === 'cancelled'
+                        ? 'cancel'
+                        : statusConfig?.statusKey === 'transferred'
+                        ? 'swap_horiz'
+                        : 'block'}
+                    </span>
+                  </div>
+                  <div className="text-left flex-1 min-w-0">
+                    <p className="text-xs font-bold uppercase tracking-wide">
+                      {statusConfig?.statusKey === 'attended'
+                        ? 'Entry Completed • تم الدخول مسبقاً'
+                        : statusConfig?.statusKey === 'cancelled'
+                        ? 'Pass Cancelled • التذكرة ملغاة'
+                        : statusConfig?.statusKey === 'transferred'
+                        ? 'Pass Transferred • تم تحويل التذكرة'
+                        : 'Pass Inactive • تذكرة غير فعالة'}
+                    </p>
+                    <p className="text-[11px] opacity-85 font-medium mt-0.5">
+                      {statusConfig?.statusKey === 'attended'
+                        ? 'This match pass has already been validated and admitted at the gate.'
+                        : statusConfig?.statusKey === 'cancelled'
+                        ? 'This match pass has been cancelled and is not valid for entry.'
+                        : statusConfig?.statusKey === 'transferred'
+                        ? 'This match pass was transferred to another fan account.'
+                        : 'This pass is inactive and cannot be validated at the gate.'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Security Footer */}
             <div className="flex items-center justify-center gap-2 text-[11px] text-secondary pt-2">
               <span className="material-symbols-outlined text-[14px]">shield</span>
               <span>
-                Verified by Tazkarti Digital Pass System • Pass #{ticket.id ?? ticketId}
+                Verified by Tazkarti Digital Pass System
                 {ticket.bookingOrderId && ` • Order #${ticket.bookingOrderId}`}
               </span>
             </div>

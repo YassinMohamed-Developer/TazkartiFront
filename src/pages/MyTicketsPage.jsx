@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useBooking } from '../context/BookingContext';
 import { useAuth } from '../context/AuthContext';
-import { getAllTicketPasses, normalizeTicketPass, getEntertainmentTicketById } from '../services/authService';
+import { getAllTicketPasses, normalizeTicketPass } from '../services/authService';
 
 export const MyTicketsPage = () => {
   const { tickets: contextTickets, transferTicket } = useBooking();
@@ -44,7 +44,6 @@ export const MyTicketsPage = () => {
   /**
    * Fetch ticket passes from backend API:
    * GET https://localhost:7020/api/TicketPass/GetAllTickets
-   * and optionally GET https://localhost:7020/api/TicketPass/GetEntertainmentEventTicket/41
    */
   const fetchTickets = async () => {
     setIsLoading(true);
@@ -75,44 +74,129 @@ export const MyTicketsPage = () => {
         );
         setDbTickets(fallbacks);
       } else {
-        // Realistic fallback matching database match passes
+        // Realistic fallback matching database tickets response
         setDbTickets([
           normalizeTicketPass(
             {
-              id: 35,
+              id: 34,
+              type: "Match",
               bookingOrderId: 89,
-              currentFanId: 'Fan Id : TZK-378584',
-              holderName: 'HamedMohamed',
-              price: 600.0,
-              gate: 'Gate 4',
-              status: 1,
-              competition: 'Egyptian Premier League',
-              round: 'Round 10',
-              title: 'Al Ahly SC vs Zamalek SC',
-              homeTeam: 'Al Ahly SC',
-              awayTeam: 'Zamalek SC',
+              currentFanId: "Fan Id : TZK-378584",
+              holderName: "HamedMohamed",
+              price: 600.00,
+              gate: "Gate 4",
+              status: 4,
               isActive: false,
+              details: {
+                matchId: 2,
+                title: "Al Ahly SC vs Zamalek SC",
+                competition: "Egyptian Premier League",
+                round: "Round 10",
+                homeTeam: "Al Ahly SC",
+                awayTeam: "Zamalek SC",
+                matchDate: "2026-09-15T00:00:00",
+                kickoffTime: "20:00",
+                gateOpenTime: "16:00",
+                city: "Cairo",
+                venueName: "Cairo International Stadium",
+                bannerImage: null,
+                categoryId: 2,
+                categoryName: "Category 3 (Curva)",
+                block: "Section B-12"
+              }
             },
             0
           ),
           normalizeTicketPass(
             {
-              id: 36,
+              id: 35,
+              type: "Match",
               bookingOrderId: 89,
-              currentFanId: 'Fan Id : TZK-378584',
-              holderName: 'HamedMohamed',
-              price: 600.0,
-              gate: 'Gate 4',
-              status: 1,
-              competition: 'Egyptian Premier League',
-              round: 'Round 10',
-              title: 'Al Ahly SC vs Zamalek SC',
-              homeTeam: 'Al Ahly SC',
-              awayTeam: 'Zamalek SC',
+              currentFanId: "Fan Id : TZK-378584",
+              holderName: "HamedMohamed",
+              price: 600.00,
+              gate: "Gate 4",
+              status: 3,
               isActive: true,
+              details: {
+                matchId: 2,
+                title: "Al Ahly SC vs Zamalek SC",
+                competition: "Egyptian Premier League",
+                round: "Round 10",
+                homeTeam: "Al Ahly SC",
+                awayTeam: "Zamalek SC",
+                matchDate: "2026-09-15T00:00:00",
+                kickoffTime: "20:00",
+                gateOpenTime: "16:00",
+                city: "Cairo",
+                venueName: "Cairo International Stadium",
+                bannerImage: null,
+                categoryId: 2,
+                categoryName: "Category 3 (Curva)",
+                block: "Section B-12"
+              }
             },
             1
           ),
+          normalizeTicketPass(
+            {
+              id: 36,
+              type: "Match",
+              bookingOrderId: 89,
+              currentFanId: "Fan Id : TZK-378584",
+              holderName: "HamedMohamed",
+              price: 600.00,
+              gate: "Gate 4",
+              status: 1,
+              isActive: true,
+              details: {
+                matchId: 2,
+                title: "Al Ahly SC vs Zamalek SC",
+                competition: "Egyptian Premier League",
+                round: "Round 10",
+                homeTeam: "Al Ahly SC",
+                awayTeam: "Zamalek SC",
+                matchDate: "2026-09-15T00:00:00",
+                kickoffTime: "20:00",
+                gateOpenTime: "16:00",
+                city: "Cairo",
+                venueName: "Cairo International Stadium",
+                bannerImage: null,
+                categoryId: 2,
+                categoryName: "Category 3 (Curva)",
+                block: "Section B-12"
+              }
+            },
+            2
+          ),
+          normalizeTicketPass(
+            {
+              id: 46,
+              type: "Event",
+              bookingOrderId: 95,
+              currentFanId: "Fan Id : TZK-378584",
+              holderName: "HamedMohamed",
+              price: 25.50,
+              gate: "Gate 1 - Main Entrance",
+              status: 1,
+              isActive: true,
+              details: {
+                eventId: 2,
+                title: "Acoustic Jazz Night",
+                category: 2,
+                artist: "Miles Harrison Quartet",
+                eventDate: "2026-11-05T00:00:00",
+                eventTime: "20:30",
+                city: "New Orleans",
+                venueName: null,
+                bannerImage: null,
+                tierId: 3,
+                tierName: "Standard Seating",
+                perks: null
+              }
+            },
+            3
+          )
         ]);
       }
     } finally {
@@ -504,351 +588,171 @@ export const MyTicketsPage = () => {
               const isEventTicket = Boolean(ticket.isEvent || ticket.type === 'event');
 
               /* =========================================================================
-                 SHAPE 1: ENTERTAINMENT EVENT TICKET PASS (Festivals, Concerts, Theater)
+                 SHAPE 1: ENTERTAINMENT EVENT TICKET PASS (Simple, Clean & Modern)
                  ========================================================================= */
               if (isEventTicket) {
+                const isInactive = ticket.isActive === false || ticket.status === 4;
+
                 return (
                   <div
                     key={ticketId}
-                    className={`tazkara-card bg-surface-container-lowest rounded-3xl border-2 border-surface-variant shadow-md hover:shadow-xl transition-all overflow-hidden flex flex-col lg:flex-row print:flex-row relative group print:m-0 print:border-outline-variant print:shadow-none ${
+                    className={`tazkara-card bg-surface-container-lowest rounded-2xl border border-surface-variant/80 shadow-sm hover:shadow-md transition-all overflow-hidden flex flex-col md:flex-row print:flex-row relative group print:m-0 print:border-outline-variant print:shadow-none ${
                       isPrintingThis ? 'printing-target' : ''
                     }`}
                   >
-                    {/* Left Accent Border Stripe: Electric Purple to Golden Amber */}
-                    <div className="hidden lg:block print:block w-3 bg-gradient-to-b from-[#8E24AA] via-tertiary to-[#FFB300] shrink-0"></div>
+                    {/* Left Brand Accent Line */}
+                    <div className="hidden md:block print:block w-2 bg-tertiary shrink-0"></div>
 
-                    {/* MAIN TICKET BODY (Left / 70%) */}
-                    <div className="flex-grow flex flex-col justify-between p-6 lg:p-7 relative">
-                      {/* Top Header Bar */}
-                      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-surface-variant pb-4 mb-5">
-                        <div className="flex items-center gap-2.5">
-                          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-tertiary to-[#8E24AA] text-white flex items-center justify-center font-bold text-sm shadow-xs">
+                    {/* Main Ticket Body */}
+                    <div className="flex-grow p-5 sm:p-6 flex flex-col justify-between gap-4">
+                      {/* Top Header */}
+                      <div className="flex flex-wrap items-center justify-between gap-2.5 border-b border-surface-variant pb-3">
+                        <div className="flex items-center gap-2">
+                          <span className="w-7 h-7 rounded-lg bg-tertiary/10 text-tertiary flex items-center justify-center font-bold text-sm">
                             <span className="material-symbols-outlined text-base">theater_comedy</span>
-                          </div>
-                          <div>
-                            <div className="flex items-center gap-1.5">
-                              <span className="font-bold text-base text-on-surface tracking-tight">TAZKARTI</span>
-                              <span className="text-tertiary font-bold text-sm">| تذكرتي</span>
-                            </div>
-                            <span className="text-[10px] text-secondary uppercase tracking-wider font-label-sm block">
-                              Official Live Event Pass • تذكرة فعاليات وحفلات رسمية
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-2 flex-wrap">
-                          {/* Category Pill */}
+                          </span>
+                          <span className="font-bold text-sm text-on-surface tracking-tight">TAZKARTI EVENT PASS</span>
                           {ticket.category && (
-                            <span className="bg-tertiary/10 text-tertiary border border-tertiary/20 text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1.5">
-                              <span className="material-symbols-outlined text-sm">music_note</span>
-                              <span>{ticket.category}</span>
+                            <span className="text-xs bg-surface-container text-secondary font-medium px-2.5 py-0.5 rounded-md">
+                              {ticket.category}
                             </span>
                           )}
+                        </div>
 
-                          {/* Ticket Tier Badge (VIP Pass / General Admission) */}
-                          <span className="bg-gradient-to-r from-amber-500/15 via-yellow-500/25 to-amber-500/15 text-amber-600 dark:text-amber-300 border border-amber-400/40 text-xs font-black px-3 py-1 rounded-full flex items-center gap-1 shadow-xs uppercase tracking-wider">
-                            <span className="material-symbols-outlined text-sm text-amber-500">stars</span>
-                            <span>{ticket.tierName || 'VIP Pass'}</span>
-                          </span>
-
-                          {/* Gate Tag */}
-                          <span className="bg-surface-container border border-surface-variant text-on-surface text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1">
-                            <span className="material-symbols-outlined text-sm text-tertiary">door_front</span>
-                            <span>{ticket.gate}</span>
+                        <div className="flex items-center gap-2">
+                          {/* Tier Badge */}
+                          <span className="bg-tertiary/10 text-tertiary font-bold text-xs px-2.5 py-0.5 rounded-md">
+                            {ticket.tierName || 'Standard Pass'}
                           </span>
 
                           {/* Status Badge */}
                           <span
-                            className={`text-[11px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider flex items-center gap-1 ${
-                              ticket.isActive === false || ticket.status === 4 || String(ticket.status).toLowerCase() === 'cancelled'
-                                ? 'bg-error/10 text-error border border-error/20'
-                                : ticket.status === 3 || String(ticket.status).toLowerCase() === 'attended'
-                                ? 'bg-tertiary/10 text-tertiary border border-tertiary/20'
-                                : ticket.status === 2 || String(ticket.status).toLowerCase() === 'transferred'
-                                ? 'bg-golden-gate/10 text-golden-gate border border-golden-gate/20'
-                                : 'bg-pitch-green/10 text-pitch-green border border-pitch-green/20'
+                            className={`text-[11px] font-bold px-2.5 py-0.5 rounded-md flex items-center gap-1 uppercase ${
+                              isInactive
+                                ? 'bg-error/10 text-error'
+                                : ticket.status === 3
+                                ? 'bg-tertiary/10 text-tertiary'
+                                : ticket.status === 2
+                                ? 'bg-golden-gate/10 text-golden-gate'
+                                : 'bg-pitch-green/10 text-pitch-green'
                             }`}
                           >
-                            <span className="material-symbols-outlined text-xs">
-                              {ticket.isActive === false || ticket.status === 4 || String(ticket.status).toLowerCase() === 'cancelled'
-                                ? 'cancel'
-                                : ticket.status === 3 || String(ticket.status).toLowerCase() === 'attended'
-                                ? 'event_available'
-                                : ticket.status === 2 || String(ticket.status).toLowerCase() === 'transferred'
-                                ? 'swap_horiz'
-                                : 'check_circle'}
-                            </span>
-                            <span>{ticket.isActive === false ? 'Inactive Pass' : ticket.statusLabel}</span>
+                            <span className="w-1.5 h-1.5 rounded-full bg-current"></span>
+                            <span>{isInactive ? 'Cancelled' : ticket.statusLabel}</span>
                           </span>
                         </div>
                       </div>
 
-                      {/* HERO SHOWCASE: Headline Artist & Event Banner */}
-                      <div className="mb-5 bg-gradient-to-r from-surface-container-high via-surface-container to-surface-container-high p-4 sm:p-5 rounded-2xl border border-surface-variant/90 shadow-sm relative overflow-hidden">
-                        {/* Ambient Festival Glow Background */}
-                        <div className="absolute top-0 right-1/4 w-48 h-48 bg-tertiary/10 rounded-full blur-3xl pointer-events-none"></div>
-                        <div className="absolute bottom-0 left-10 w-32 h-32 bg-amber-500/10 rounded-full blur-2xl pointer-events-none"></div>
-
-                        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 relative z-10">
-                          {/* Artist Showcase */}
-                          <div className="flex items-center gap-4">
-                            <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-tertiary/20 to-purple-600/30 border border-tertiary/30 p-2 shadow-xs flex items-center justify-center shrink-0 text-tertiary">
-                              <span className="material-symbols-outlined text-3xl">mic</span>
-                            </div>
-                            <div>
-                              <div className="flex items-center gap-1.5">
-                                <span className="text-[10px] text-tertiary font-bold uppercase tracking-wider font-label-sm">
-                                  Headliner • الفنان
-                                </span>
-                                <span className="w-1.5 h-1.5 rounded-full bg-tertiary"></span>
-                                <span className="text-[10px] text-secondary font-semibold">Live Concert / Festival</span>
-                              </div>
-                              <h3 className="font-headline-md text-lg sm:text-2xl font-bold text-on-surface">
-                                {ticket.artist || 'Featured Artist'}
-                              </h3>
-                              <h4 className="text-sm font-semibold text-secondary flex items-center gap-1.5 mt-0.5">
-                                <span className="material-symbols-outlined text-sm text-tertiary">festival</span>
-                                <span>{ticket.title}</span>
-                              </h4>
-                            </div>
-                          </div>
-
-                          {/* Date & Location Container */}
-                          <div className="flex sm:flex-col items-start sm:items-end gap-1.5 bg-surface-container-lowest/80 backdrop-blur-sm px-3.5 py-2.5 rounded-xl border border-surface-variant/80 shrink-0">
-                            <div className="flex items-center gap-1.5 text-xs font-bold text-on-surface">
-                              <span className="material-symbols-outlined text-sm text-tertiary">calendar_month</span>
-                              <span>
-                                {ticket.date} • {ticket.time}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-1.5 text-xs text-secondary">
-                              <span className="material-symbols-outlined text-sm text-tertiary">location_on</span>
-                              <span>
-                                {ticket.city}
-                                {ticket.venueName ? ` • ${ticket.venueName}` : ''}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* INCLUDED TIER PERKS & BENEFITS (Distinctive Feature!) */}
-                      <div className="mb-5 bg-surface p-4 rounded-2xl border border-surface-variant/80 shadow-xs space-y-2.5">
-                        <div className="flex items-center justify-between">
-                          <span className="text-[11px] text-secondary uppercase tracking-wider font-label-sm font-bold flex items-center gap-1.5">
-                            <span className="material-symbols-outlined text-base text-pitch-green">verified</span>
-                            <span>Included Pass Perks & Benefits • مميزات الباقة</span>
-                          </span>
-                          <span className="text-[10px] bg-tertiary/10 text-tertiary font-bold px-2.5 py-0.5 rounded-full uppercase">
-                            {ticket.tierName || 'Tier Perks'}
-                          </span>
-                        </div>
-
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 pt-0.5">
-                          {ticket.perks && ticket.perks.length > 0 ? (
-                            ticket.perks.map((perk, pIdx) => (
-                              <div
-                                key={pIdx}
-                                className="flex items-center gap-2 text-xs text-on-surface bg-surface-container-lowest p-2.5 rounded-xl border border-surface-variant/60 shadow-2xs"
-                              >
-                                <span className="material-symbols-outlined text-pitch-green text-base fill shrink-0">
-                                  check_circle
-                                </span>
-                                <span className="leading-tight truncate" title={perk}>
-                                  {perk}
-                                </span>
-                              </div>
-                            ))
-                          ) : (
-                            <div className="flex items-center gap-2 text-xs text-secondary bg-surface-container-lowest p-2.5 rounded-xl border border-surface-variant/60 col-span-full">
-                              <span className="material-symbols-outlined text-pitch-green text-base fill">
-                                check_circle
-                              </span>
-                              <span>General admission festival grounds entry and main stage access</span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Center Content: Fan Holder & Seating/Gate Details */}
-                      <div className="space-y-4">
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-surface p-3.5 rounded-2xl border border-surface-variant">
-                          <div className="flex items-center gap-3">
-                            <div className="w-11 h-11 rounded-full bg-tertiary/10 text-tertiary font-bold flex items-center justify-center text-base shrink-0 border border-tertiary/20 shadow-xs">
-                              {ticket.holderName.slice(0, 2).toUpperCase()}
-                            </div>
-                            <div>
-                              <span className="text-[10px] text-secondary uppercase tracking-wider font-label-sm block">
-                                Ticket Holder • صاحب التذكرة
-                              </span>
-                              <h3 className="font-headline-md text-base sm:text-lg font-bold text-on-surface">
-                                {ticket.holderName}
-                              </h3>
-                            </div>
-                          </div>
-
-                          <div className="bg-surface-container-lowest px-3 py-2 rounded-xl border border-outline-variant/60 flex items-center justify-between sm:justify-start gap-2">
-                            <div>
-                              <span className="text-[9px] text-secondary uppercase tracking-wider block font-semibold">
-                                Fan ID • بطاقة المشجع
-                              </span>
-                              <span className="font-mono text-xs font-bold text-tertiary">
-                                {ticket.currentFanId}
-                              </span>
-                            </div>
-                            <button
-                              onClick={() => handleCopy(ticket.cleanFanId, `fan-${index}`)}
-                              className="text-secondary hover:text-tertiary transition-colors p-1 rounded hover:bg-surface-container print:hidden"
-                              title="Copy Fan ID"
-                            >
-                              <span className="material-symbols-outlined text-[16px]">
-                                {copiedField === `fan-${index}` ? 'check' : 'content_copy'}
-                              </span>
-                            </button>
-                          </div>
-                        </div>
-
-                        {/* Event Ticket Details Boxes */}
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                          {/* Gate Box */}
-                          <div className="bg-surface-container-low border border-surface-variant p-3 rounded-2xl text-center">
-                            <span className="text-[10px] uppercase tracking-wider text-secondary font-label-sm block">
-                              Gate • البوابة
-                            </span>
-                            <div className="text-sm sm:text-base font-bold text-tertiary mt-0.5 truncate" title={ticket.gate}>
-                              {ticket.gate}
-                            </div>
-                          </div>
-
-                          {/* Tier Box */}
-                          <div className="bg-surface-container-low border border-surface-variant p-3 rounded-2xl text-center">
-                            <span className="text-[10px] uppercase tracking-wider text-secondary font-label-sm block">
-                              Pass Category • فئة الباقة
-                            </span>
-                            <div className="text-sm sm:text-base font-bold text-on-surface mt-0.5 truncate" title={ticket.tierName || 'Pass'}>
-                              {ticket.tierName || 'Standard Pass'}
-                            </div>
-                          </div>
-
-                          {/* Price Box */}
-                          <div className="bg-surface-container-low border border-surface-variant p-3 rounded-2xl text-center">
-                            <span className="text-[10px] uppercase tracking-wider text-secondary font-label-sm block">
-                              Pass Price • السعر
-                            </span>
-                            <div className="text-base sm:text-lg font-bold text-tertiary mt-0.5">
-                              {ticket.price.toFixed(2)} <span className="text-[11px] font-normal text-secondary">EGP</span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Bottom Barcode Strip */}
-                      <div className="mt-5 pt-4 border-t border-surface-variant flex flex-col sm:flex-row items-center justify-between gap-3 text-secondary">
-                        <div className="flex items-center gap-2 w-full sm:w-auto">
-                          <div className="flex items-end gap-[2px] h-6 px-2 bg-surface rounded border border-surface-variant shrink-0">
-                            {[5, 3, 7, 2, 6, 4, 3, 7, 2, 5, 4, 6, 3, 7, 2, 4, 6, 3, 5, 2, 7, 4, 3, 6, 2].map((h, i) => (
-                              <div
-                                key={i}
-                                className="bg-on-surface/70 w-[2px]"
-                                style={{ height: `${h * 3}px` }}
-                              ></div>
-                            ))}
-                          </div>
-                          <span className="text-[10px] font-mono tracking-widest uppercase text-secondary">
-                            TAZKARTI-EVENT-PASS-#{ticket.ticketPassId || ticket.id}
-                          </span>
-                        </div>
-
-                        <div className="flex items-center gap-1.5 text-[11px] text-secondary">
-                          <span className={`material-symbols-outlined text-[15px] ${ticket.isActive === false ? 'text-error' : 'text-tertiary'}`}>
-                            {ticket.isActive === false ? 'block' : 'stars'}
-                          </span>
-                          <span>
-                            {ticket.isActive === false
-                              ? 'Pass Inactive • تذكرة غير فعّالة'
-                              : 'Turnstile Electronic Gate Pass • صالحة للدخول الإلكتروني'}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* PERFORATION SEAM */}
-                    <div className="relative flex lg:flex-col print:flex-col items-center justify-center">
-                      <div className="hidden lg:block print:block absolute -top-3.5 left-1/2 -translate-x-1/2 w-7 h-7 rounded-full bg-background border border-surface-variant z-10 shadow-inner"></div>
-                      <div className="hidden lg:block print:block h-full border-r-2 border-dashed border-outline-variant/70"></div>
-                      <div className="lg:hidden print:hidden w-full border-t-2 border-dashed border-outline-variant/70 relative">
-                        <div className="absolute -left-3.5 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-background border border-surface-variant z-10 shadow-inner"></div>
-                        <div className="absolute -right-3.5 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-background border border-surface-variant z-10 shadow-inner"></div>
-                      </div>
-                      <div className="hidden lg:block print:block absolute -bottom-3.5 left-1/2 -translate-x-1/2 w-7 h-7 rounded-full bg-background border border-surface-variant z-10 shadow-inner"></div>
-                    </div>
-
-                    {/* TICKET STUB (Right / 30%) */}
-                    <div className="lg:w-72 print:w-72 bg-gradient-to-b from-surface-container-low via-surface-container to-surface-container-low p-6 flex flex-col items-center justify-between gap-4 shrink-0 text-center">
-                      <div className="w-full space-y-1">
-                        <div className="text-[10px] font-bold tracking-widest text-tertiary uppercase font-label-sm flex items-center justify-center gap-1">
-                          <span className="material-symbols-outlined text-xs">confirmation_number</span>
-                          <span>EVENT PASS STUB • كعب التذكرة</span>
-                        </div>
-                        <div className="text-xs font-bold text-on-surface truncate" title={ticket.title}>
+                      {/* Event Title & Artist */}
+                      <div className="space-y-1">
+                        <h3 className="font-headline-md text-xl sm:text-2xl font-bold text-on-surface leading-tight">
                           {ticket.title}
+                        </h3>
+                        {ticket.artist && (
+                          <p className="text-sm font-semibold text-tertiary flex items-center gap-1.5">
+                            <span className="material-symbols-outlined text-base">mic</span>
+                            <span>{ticket.artist}</span>
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Event Meta Details Grid */}
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 py-2.5 px-3.5 bg-surface rounded-xl border border-surface-variant/60 text-xs">
+                        <div>
+                          <span className="text-[10px] text-secondary block font-label-sm font-medium">DATE & TIME</span>
+                          <span className="font-bold text-on-surface">{ticket.date} • {ticket.time}</span>
                         </div>
-                        <div className="text-[11px] font-semibold text-tertiary truncate">
-                          {ticket.artist}
+                        <div>
+                          <span className="text-[10px] text-secondary block font-label-sm font-medium">VENUE / CITY</span>
+                          <span className="font-bold text-on-surface truncate block" title={ticket.venue || ticket.city}>
+                            {ticket.venue || ticket.city}
+                          </span>
                         </div>
-                        <div className="inline-block bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-400/40 text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase mt-0.5">
-                          {ticket.tierName || 'VIP Pass'}
+                        <div>
+                          <span className="text-[10px] text-secondary block font-label-sm font-medium">GATE ENTRANCE</span>
+                          <span className="font-bold text-tertiary">{ticket.gate}</span>
+                        </div>
+                        <div>
+                          <span className="text-[10px] text-secondary block font-label-sm font-medium">PRICE</span>
+                          <span className="font-bold text-on-surface">{ticket.price.toFixed(2)} EGP</span>
                         </div>
                       </div>
 
-                      {/* Scannable Pass QR Code with zoom */}
+                      {/* Bottom Row: Holder & Fan ID */}
+                      <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-surface-variant/60 text-xs">
+                        <div className="flex items-center gap-2">
+                          <span className="text-secondary font-medium">Pass Holder:</span>
+                          <span className="font-bold text-on-surface">{ticket.holderName}</span>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <span className="text-secondary font-medium">Fan ID:</span>
+                          <span className="font-mono font-bold text-tertiary bg-tertiary/10 px-2 py-0.5 rounded">
+                            {ticket.cleanFanId}
+                          </span>
+                          <button
+                            onClick={() => handleCopy(ticket.cleanFanId, `fan-${index}`)}
+                            className="text-secondary hover:text-tertiary transition-colors print:hidden"
+                            title="Copy Fan ID"
+                          >
+                            <span className="material-symbols-outlined text-sm">
+                              {copiedField === `fan-${index}` ? 'check' : 'content_copy'}
+                            </span>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Perforation Notch Seam */}
+                    <div className="relative flex md:flex-col print:flex-col items-center justify-center">
+                      <div className="hidden md:block print:block absolute -top-3 left-1/2 -translate-x-1/2 w-6 h-6 rounded-full bg-background border border-surface-variant z-10"></div>
+                      <div className="hidden md:block print:block h-full border-r border-dashed border-outline-variant"></div>
+                      <div className="md:hidden print:hidden w-full border-t border-dashed border-outline-variant relative">
+                        <div className="absolute -left-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-background border border-surface-variant z-10"></div>
+                        <div className="absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-background border border-surface-variant z-10"></div>
+                      </div>
+                      <div className="hidden md:block print:block absolute -bottom-3 left-1/2 -translate-x-1/2 w-6 h-6 rounded-full bg-background border border-surface-variant z-10"></div>
+                    </div>
+
+                    {/* Right Ticket Stub: QR & Actions */}
+                    <div className="md:w-56 print:w-56 bg-surface p-5 flex flex-col items-center justify-between gap-3 shrink-0 text-center border-t md:border-t-0 md:border-l border-surface-variant/40">
+                      <div className="space-y-0.5">
+                        <span className="text-xs font-bold text-on-surface truncate max-w-[180px] block">
+                          {ticket.tierName || 'Standard Pass'}
+                        </span>
+                      </div>
+
+                      {/* QR Code */}
                       <div
                         onClick={() => setSelectedQrPass(ticket)}
-                        className="cursor-pointer group/qr relative bg-white p-3 rounded-2xl border-2 border-dashed border-tertiary/40 shadow-xs hover:border-tertiary transition-all inline-block"
+                        className="cursor-pointer bg-white p-2.5 rounded-xl border border-outline-variant/60 shadow-xs hover:border-tertiary transition-all"
                         title="Click to enlarge Turnstile Pass QR"
                       >
                         <img
                           src={ticket.qrCode}
-                          alt="Gate QR Code"
-                          className="w-28 h-28 object-contain rounded"
+                          alt="Ticket QR Code"
+                          className="w-24 h-24 object-contain"
                         />
-                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover/qr:opacity-100 transition-opacity rounded-2xl flex flex-col items-center justify-center text-white text-xs font-semibold gap-1 print:hidden">
-                          <span className="material-symbols-outlined text-2xl">zoom_in</span>
-                          <span>Enlarge Pass</span>
-                        </div>
                       </div>
 
-                      <div className="text-[10px] text-secondary font-mono">
-                        Gate Turnstile • Pass #{ticket.ticketPassId || ticket.id}
-                      </div>
+                      <span className="text-[10px] text-secondary font-mono">Scan at Gate Turnstile</span>
 
                       {/* Action Buttons */}
-                      <div className="w-full space-y-2 pt-1 print:hidden">
+                      <div className="w-full space-y-1.5 print:hidden">
                         <button
                           onClick={() => handlePrintTicket(ticket)}
-                          className="w-full bg-tertiary hover:bg-tertiary-container text-white font-bold px-3 py-2 rounded-xl transition-all text-xs text-center flex items-center justify-center gap-1.5 shadow-sm cursor-pointer active:scale-95"
-                          title="Print Event Pass"
+                          className="w-full bg-tertiary hover:bg-tertiary-container text-white font-bold py-1.5 px-3 rounded-lg text-xs transition-colors flex items-center justify-center gap-1.5 shadow-xs cursor-pointer"
                         >
-                          <span className="material-symbols-outlined text-base">print</span>
-                          <span>Print Pass • طباعة التذكرة</span>
-                        </button>
-
-                        <button
-                          onClick={() => setSelectedQrPass(ticket)}
-                          className="w-full bg-surface-container-high hover:bg-surface-container-highest text-on-surface font-semibold px-3 py-2 rounded-xl transition-all text-xs text-center flex items-center justify-center gap-1.5 cursor-pointer shadow-xs active:scale-95"
-                          title="Open Turnstile Scanner QR Pass"
-                        >
-                          <span className="material-symbols-outlined text-base text-tertiary">qr_code_scanner</span>
-                          <span>Scan Pass</span>
+                          <span className="material-symbols-outlined text-sm">print</span>
+                          <span>Print Pass</span>
                         </button>
 
                         <button
                           onClick={() => setSelectedTicketForTransfer(ticket)}
-                          className="w-full bg-surface border border-outline-variant hover:bg-surface-container text-on-surface font-semibold px-3 py-2 rounded-xl transition-all text-xs text-center flex items-center justify-center gap-1.5 cursor-pointer shadow-xs active:scale-95"
-                          title="Transfer Event Pass"
+                          className="w-full bg-surface-container hover:bg-surface-container-high text-on-surface font-semibold py-1.5 px-3 rounded-lg text-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
                         >
-                          <span className="material-symbols-outlined text-base text-secondary">swap_horiz</span>
-                          <span>Transfer Pass</span>
+                          <span className="material-symbols-outlined text-sm text-secondary">swap_horiz</span>
+                          <span>Transfer</span>
                         </button>
                       </div>
                     </div>
@@ -857,355 +761,179 @@ export const MyTicketsPage = () => {
               }
 
               /* =========================================================================
-                 SHAPE 2: STADIUM MATCH PASS (Football Matches)
+                 SHAPE 2: STADIUM MATCH PASS (Simple, Clean & Modern - Match Red Color)
                  ========================================================================= */
+              const isInactiveMatch = ticket.isActive === false || ticket.status === 4;
+
               return (
                 <div
                   key={ticketId}
-                  className={`tazkara-card bg-surface-container-lowest rounded-3xl border border-surface-variant shadow-md hover:shadow-xl transition-all overflow-hidden flex flex-col lg:flex-row print:flex-row relative group print:m-0 print:border-outline-variant print:shadow-none ${
+                  className={`tazkara-card bg-surface-container-lowest rounded-2xl border border-surface-variant/80 shadow-sm hover:shadow-md transition-all overflow-hidden flex flex-col md:flex-row print:flex-row relative group print:m-0 print:border-outline-variant print:shadow-none ${
                     isPrintingThis ? 'printing-target' : ''
                   }`}
                 >
-                  {/* Authentic Left Accent Border Stripe */}
-                  <div className="hidden lg:block print:block w-2.5 bg-gradient-to-b from-primary via-primary-container to-golden-gate shrink-0"></div>
+                  {/* Left Brand Accent Line - Red for Match */}
+                  <div className="hidden md:block print:block w-2 bg-primary shrink-0"></div>
 
-                  {/* MAIN TICKET BODY (Left / 70%) */}
-                  <div className="flex-grow flex flex-col justify-between p-6 lg:p-7 relative">
-                    {/* Top Tazkarti Branded Header Bar */}
-                    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-surface-variant pb-4 mb-5">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-lg bg-primary text-white flex items-center justify-center font-bold text-sm shadow-xs">
-                          ت
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-1.5">
-                            <span className="font-bold text-base text-on-surface tracking-tight">TAZKARTI</span>
-                            <span className="text-primary font-bold text-sm">| تذكرتي</span>
-                          </div>
-                          <span className="text-[10px] text-secondary uppercase tracking-wider font-label-sm block">
-                            Official Stadium Match Pass • تذكرة مباراة رسمية
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-2 flex-wrap">
-                        {/* Competition & Round Badge */}
+                  {/* Main Ticket Body */}
+                  <div className="flex-grow p-5 sm:p-6 flex flex-col justify-between gap-4">
+                    {/* Top Header */}
+                    <div className="flex flex-wrap items-center justify-between gap-2.5 border-b border-surface-variant pb-3">
+                      <div className="flex items-center gap-2">
+                        <span className="w-7 h-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-bold text-sm">
+                          <span className="material-symbols-outlined text-base">sports_soccer</span>
+                        </span>
+                        <span className="font-bold text-sm text-on-surface tracking-tight">TAZKARTI MATCH PASS</span>
                         {ticket.competition && (
-                          <span className="bg-surface-container border border-surface-variant text-on-surface text-xs font-semibold px-3 py-1 rounded-full flex items-center gap-1.5">
-                            <span className="material-symbols-outlined text-sm text-primary">emoji_events</span>
+                          <span className="text-xs bg-surface-container text-secondary font-medium px-2.5 py-0.5 rounded-md flex items-center gap-1">
                             <span>{ticket.competition}</span>
                             {ticket.round && (
                               <>
                                 <span className="text-secondary/40">•</span>
-                                <span className="text-primary font-bold">{ticket.round}</span>
+                                <span className="text-primary font-semibold">{ticket.round}</span>
                               </>
                             )}
                           </span>
                         )}
+                      </div>
 
-                        {/* Gate High-Contrast Tag */}
-                        <span className="bg-primary/10 text-primary border border-primary/20 text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1">
-                          <span className="material-symbols-outlined text-sm">door_front</span>
-                          <span>{ticket.gate}</span>
+                      <div className="flex items-center gap-2">
+                        {/* Category / Tier Badge */}
+                        <span className="bg-primary/10 text-primary font-bold text-xs px-2.5 py-0.5 rounded-md">
+                          {ticket.categoryName || 'Category 1'}
                         </span>
 
                         {/* Status Badge */}
                         <span
-                          className={`text-[11px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider flex items-center gap-1 ${
-                            ticket.isActive === false || ticket.status === 4 || String(ticket.status).toLowerCase() === 'cancelled'
-                              ? 'bg-error/10 text-error border border-error/20'
-                              : ticket.status === 3 || String(ticket.status).toLowerCase() === 'attended'
-                              ? 'bg-tertiary/10 text-tertiary border border-tertiary/20'
-                              : ticket.status === 2 || String(ticket.status).toLowerCase() === 'transferred'
-                              ? 'bg-golden-gate/10 text-golden-gate border border-golden-gate/20'
-                              : 'bg-pitch-green/10 text-pitch-green border border-pitch-green/20'
+                          className={`text-[11px] font-bold px-2.5 py-0.5 rounded-md flex items-center gap-1 uppercase ${
+                            isInactiveMatch
+                              ? 'bg-error/10 text-error'
+                              : ticket.status === 3
+                              ? 'bg-tertiary/10 text-tertiary'
+                              : ticket.status === 2
+                              ? 'bg-golden-gate/10 text-golden-gate'
+                              : 'bg-pitch-green/10 text-pitch-green'
                           }`}
                         >
-                          <span className="material-symbols-outlined text-xs">
-                            {ticket.isActive === false || ticket.status === 4 || String(ticket.status).toLowerCase() === 'cancelled'
-                              ? 'cancel'
-                              : ticket.status === 3 || String(ticket.status).toLowerCase() === 'attended'
-                              ? 'event_available'
-                              : ticket.status === 2 || String(ticket.status).toLowerCase() === 'transferred'
-                              ? 'swap_horiz'
-                              : 'check_circle'}
-                          </span>
-                          <span>{ticket.isActive === false ? 'Inactive Pass' : ticket.statusLabel}</span>
+                          <span className="w-1.5 h-1.5 rounded-full bg-current"></span>
+                          <span>{isInactiveMatch ? 'Cancelled' : ticket.statusLabel}</span>
                         </span>
                       </div>
                     </div>
 
-                    {/* Match Fixture Banner: Home Team vs Away Team */}
-                    {(ticket.title || ticket.homeTeam || ticket.awayTeam) && (
-                      <div className="mb-5 bg-gradient-to-r from-surface via-surface-container-low to-surface p-4 sm:p-5 rounded-2xl border border-surface-variant/80 shadow-xs relative overflow-hidden">
-                        {/* Subtle Stadium Glow Background */}
-                        <div className="absolute top-0 right-1/4 w-32 h-32 bg-primary/5 rounded-full blur-3xl pointer-events-none"></div>
-
-                        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                          {/* Home Team */}
-                          <div className="flex items-center gap-3.5 w-full sm:w-5/12 justify-start">
-                            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-white p-2 border border-surface-variant shadow-xs flex items-center justify-center shrink-0">
-                              {ticket.homeTeamDetails?.logo ? (
-                                <img
-                                  src={ticket.homeTeamDetails.logo}
-                                  alt={ticket.homeTeam || 'Home Team'}
-                                  className="max-h-full max-w-full object-contain"
-                                />
-                              ) : (
-                                <div className="w-full h-full bg-primary/10 text-primary font-black text-sm rounded-xl flex items-center justify-center">
-                                  {ticket.homeTeamDetails?.shortName || (ticket.homeTeam ? ticket.homeTeam.slice(0, 3).toUpperCase() : 'HOM')}
-                                </div>
-                              )}
-                            </div>
-                            <div className="min-w-0">
-                              <span className="text-[10px] text-secondary font-semibold uppercase tracking-wider block font-label-sm">
-                                Home • المستضيف
-                              </span>
-                              <h4 className="font-bold text-sm sm:text-base text-on-surface truncate" title={ticket.homeTeam || ticket.title}>
-                                {ticket.homeTeam || 'Home Team'}
-                              </h4>
-                            </div>
-                          </div>
-
-                          {/* VS Centerpiece */}
-                          <div className="flex flex-col items-center justify-center shrink-0 px-2">
-                            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-primary text-white font-black text-xs flex items-center justify-center shadow-md border-2 border-surface">
-                              VS
-                            </div>
-                            {ticket.round && (
-                              <span className="text-[10px] text-secondary font-semibold mt-1 whitespace-nowrap">
-                                {ticket.round}
-                              </span>
-                            )}
-                          </div>
-
-                          {/* Away Team */}
-                          <div className="flex items-center gap-3.5 w-full sm:w-5/12 justify-start sm:justify-end flex-row sm:flex-row-reverse sm:text-right">
-                            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-white p-2 border border-surface-variant shadow-xs flex items-center justify-center shrink-0">
-                              {ticket.awayTeamDetails?.logo ? (
-                                <img
-                                  src={ticket.awayTeamDetails.logo}
-                                  alt={ticket.awayTeam || 'Away Team'}
-                                  className="max-h-full max-w-full object-contain"
-                                />
-                              ) : (
-                                <div className="w-full h-full bg-surface-container-high text-secondary font-black text-sm rounded-xl flex items-center justify-center">
-                                  {ticket.awayTeamDetails?.shortName || (ticket.awayTeam ? ticket.awayTeam.slice(0, 3).toUpperCase() : 'AWY')}
-                                </div>
-                              )}
-                            </div>
-                            <div className="min-w-0">
-                              <span className="text-[10px] text-secondary font-semibold uppercase tracking-wider block font-label-sm">
-                                Away • الضيف
-                              </span>
-                              <h4 className="font-bold text-sm sm:text-base text-on-surface truncate" title={ticket.awayTeam || ticket.title}>
-                                {ticket.awayTeam || 'Away Team'}
-                              </h4>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Title & Competition Footer in Match Banner */}
-                        <div className="mt-3 pt-2.5 border-t border-surface-variant/70 flex flex-wrap items-center justify-between gap-2 text-xs">
-                          <div className="font-bold text-on-surface flex items-center gap-1.5 text-xs sm:text-sm">
-                            <span className="material-symbols-outlined text-[18px] text-primary">sports_soccer</span>
-                            <span>{ticket.title}</span>
-                          </div>
-                          {ticket.competition && (
-                            <span className="text-secondary text-[11px] font-semibold flex items-center gap-1">
-                              <span className="material-symbols-outlined text-[14px] text-golden-gate">military_tech</span>
-                              <span>{ticket.competition}</span>
-                              {ticket.round && <span>• {ticket.round}</span>}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Center Content: Holder & Seating Detail Grid */}
-                    <div className="space-y-5">
-                      {/* Fan Holder & Fan ID */}
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-surface p-3.5 rounded-2xl border border-surface-variant">
-                        <div className="flex items-center gap-3">
-                          <div className="w-11 h-11 rounded-full bg-primary/10 text-primary font-bold flex items-center justify-center text-base shrink-0 border border-primary/20 shadow-xs">
-                            {ticket.holderName.slice(0, 2).toUpperCase()}
-                          </div>
-                          <div>
-                            <span className="text-[10px] text-secondary uppercase tracking-wider font-label-sm block">
-                              Ticket Holder • صاحب التذكرة
-                            </span>
-                            <h3 className="font-headline-md text-base sm:text-lg font-bold text-on-surface">
-                              {ticket.holderName}
-                            </h3>
-                          </div>
-                        </div>
-
-                        <div className="bg-surface-container-lowest px-3 py-2 rounded-xl border border-outline-variant/60 flex items-center justify-between sm:justify-start gap-2">
-                          <div>
-                            <span className="text-[9px] text-secondary uppercase tracking-wider block font-semibold">
-                              Fan ID • بطاقة المشجع
-                            </span>
-                            <span className="font-mono text-xs font-bold text-primary">
-                              {ticket.currentFanId}
-                            </span>
-                          </div>
-                          <button
-                            onClick={() => handleCopy(ticket.cleanFanId, `fan-${index}`)}
-                            className="text-secondary hover:text-primary transition-colors p-1 rounded hover:bg-surface-container print:hidden"
-                            title="Copy Fan ID"
-                          >
-                            <span className="material-symbols-outlined text-[16px]">
-                              {copiedField === `fan-${index}` ? 'check' : 'content_copy'}
-                            </span>
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Stadium Ticket Details Boxes (Gate / Competition-Round / Price) */}
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                        {/* Gate Box */}
-                        <div className="bg-surface-container-low border border-surface-variant p-3 rounded-2xl text-center">
-                          <span className="text-[10px] uppercase tracking-wider text-secondary font-label-sm block">
-                            Gate • البوابة
-                          </span>
-                          <div className="text-base sm:text-lg font-bold text-primary mt-0.5">
-                            {ticket.gate}
-                          </div>
-                        </div>
-
-                        {/* Competition / Round Box */}
-                        <div className="bg-surface-container-low border border-surface-variant p-3 rounded-2xl text-center">
-                          <span className="text-[10px] uppercase tracking-wider text-secondary font-label-sm block">
-                            Round • البطولة
-                          </span>
-                          <div
-                            className="text-sm sm:text-base font-bold text-on-surface mt-0.5 truncate"
-                            title={ticket.round || ticket.competition || 'Matchday'}
-                          >
-                            {ticket.round ? ticket.round : ticket.competition || 'Match Pass'}
-                          </div>
-                        </div>
-
-                        {/* Price Box */}
-                        <div className="bg-surface-container-low border border-surface-variant p-3 rounded-2xl text-center">
-                          <span className="text-[10px] uppercase tracking-wider text-secondary font-label-sm block">
-                            Price • السعر
-                          </span>
-                          <div className="text-base sm:text-lg font-bold text-pitch-green mt-0.5">
-                            {ticket.price.toFixed(2)} <span className="text-[11px] font-normal text-secondary">EGP</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Bottom Barcode Strip */}
-                    <div className="mt-5 pt-4 border-t border-surface-variant flex flex-col sm:flex-row items-center justify-between gap-3 text-secondary">
-                      <div className="flex items-center gap-2 w-full sm:w-auto">
-                        <div className="flex items-end gap-[2px] h-6 px-2 bg-surface rounded border border-surface-variant shrink-0">
-                          {[4, 2, 6, 3, 5, 2, 7, 4, 3, 6, 2, 5, 3, 7, 4, 2, 5, 3, 6, 2, 4, 3, 5, 2, 6].map((h, i) => (
-                            <div
-                              key={i}
-                              className="bg-on-surface/70 w-[2px]"
-                              style={{ height: `${h * 3}px` }}
-                            ></div>
-                          ))}
-                        </div>
-                        <span className="text-[10px] font-mono tracking-widest uppercase text-secondary">
-                          TAZKARTI-SECURE-PASS
-                        </span>
-                      </div>
-
-                      <div className="flex items-center gap-1.5 text-[11px] text-secondary">
-                        <span className={`material-symbols-outlined text-[15px] ${ticket.isActive === false ? 'text-error' : 'text-pitch-green'}`}>
-                          {ticket.isActive === false ? 'block' : 'sensors'}
-                        </span>
-                        <span>
-                          {ticket.isActive === false
-                            ? 'Pass Inactive • تذكرة غير فعّالة'
-                            : 'Turnstile Electronic Gate Pass • صالحة للدخول الإلكتروني'}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* PERFORATION SEAM */}
-                  <div className="relative flex lg:flex-col print:flex-col items-center justify-center">
-                    <div className="hidden lg:block print:block absolute -top-3.5 left-1/2 -translate-x-1/2 w-7 h-7 rounded-full bg-background border border-surface-variant z-10 shadow-inner"></div>
-                    <div className="hidden lg:block print:block h-full border-r-2 border-dashed border-outline-variant/70"></div>
-                    <div className="lg:hidden print:hidden w-full border-t-2 border-dashed border-outline-variant/70 relative">
-                      <div className="absolute -left-3.5 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-background border border-surface-variant z-10 shadow-inner"></div>
-                      <div className="absolute -right-3.5 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-background border border-surface-variant z-10 shadow-inner"></div>
-                    </div>
-                    <div className="hidden lg:block print:block absolute -bottom-3.5 left-1/2 -translate-x-1/2 w-7 h-7 rounded-full bg-background border border-surface-variant z-10 shadow-inner"></div>
-                  </div>
-
-                  {/* TICKET STUB / TEAR-OFF COUPON (Right / 30%) */}
-                  <div className="lg:w-72 print:w-72 bg-surface-container-low/60 p-6 flex flex-col items-center justify-between gap-4 shrink-0 text-center">
-                    <div className="w-full space-y-1">
-                      <div className="text-[10px] font-bold tracking-widest text-primary uppercase font-label-sm">
-                        STUB • كعب التذكرة
-                      </div>
-                      <div className="text-xs font-bold text-on-surface truncate" title={ticket.title}>
-                        {ticket.title || `${ticket.homeTeam || ''} vs ${ticket.awayTeam || ''}`}
-                      </div>
-                      {(ticket.competition || ticket.round) && (
-                        <div className="text-[10px] text-secondary truncate">
-                          {ticket.competition} {ticket.round ? `• ${ticket.round}` : ''}
+                    {/* Match Fixture Title & Teams */}
+                    <div className="space-y-1">
+                      <h3 className="font-headline-md text-xl sm:text-2xl font-bold text-on-surface leading-tight">
+                        {ticket.title || `${ticket.homeTeam || 'Home'} vs ${ticket.awayTeam || 'Away'}`}
+                      </h3>
+                      {(ticket.homeTeam || ticket.awayTeam) && (
+                        <div className="flex items-center gap-2 text-sm font-semibold text-secondary">
+                          <span className="text-on-surface">{ticket.homeTeam}</span>
+                          <span className="text-primary font-bold text-xs px-1.5 py-0.5 rounded bg-primary/10">VS</span>
+                          <span className="text-on-surface">{ticket.awayTeam}</span>
                         </div>
                       )}
-                      <div className="text-[11px] font-semibold text-primary">
-                        {ticket.gate} • Turnstile Entry
+                    </div>
+
+                    {/* Match Meta Details Grid */}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 py-2.5 px-3.5 bg-surface rounded-xl border border-surface-variant/60 text-xs">
+                      <div>
+                        <span className="text-[10px] text-secondary block font-label-sm font-medium">DATE & KICKOFF</span>
+                        <span className="font-bold text-on-surface">{ticket.date} • {ticket.time || ticket.kickoffTime}</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-secondary block font-label-sm font-medium">STADIUM / CITY</span>
+                        <span className="font-bold text-on-surface truncate block" title={ticket.venue || ticket.city}>
+                          {ticket.venue || ticket.city}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-secondary block font-label-sm font-medium">GATE & BLOCK</span>
+                        <span className="font-bold text-primary truncate block" title={`${ticket.gate} • ${ticket.block || 'Main'}`}>
+                          {ticket.gate} • {ticket.block || 'Main'}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-secondary block font-label-sm font-medium">PRICE</span>
+                        <span className="font-bold text-on-surface">{ticket.price.toFixed(2)} EGP</span>
                       </div>
                     </div>
 
-                    {/* Scannable Pass QR Code with scan corners */}
+                    {/* Bottom Row: Holder & Fan ID */}
+                    <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-surface-variant/60 text-xs">
+                      <div className="flex items-center gap-2">
+                        <span className="text-secondary font-medium">Pass Holder:</span>
+                        <span className="font-bold text-on-surface">{ticket.holderName}</span>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <span className="text-secondary font-medium">Fan ID:</span>
+                        <span className="font-mono font-bold text-primary bg-primary/10 px-2 py-0.5 rounded">
+                          {ticket.cleanFanId}
+                        </span>
+                        <button
+                          onClick={() => handleCopy(ticket.cleanFanId, `fan-${index}`)}
+                          className="text-secondary hover:text-primary transition-colors print:hidden"
+                          title="Copy Fan ID"
+                        >
+                          <span className="material-symbols-outlined text-sm">
+                            {copiedField === `fan-${index}` ? 'check' : 'content_copy'}
+                          </span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Perforation Notch Seam */}
+                  <div className="relative flex md:flex-col print:flex-col items-center justify-center">
+                    <div className="hidden md:block print:block absolute -top-3 left-1/2 -translate-x-1/2 w-6 h-6 rounded-full bg-background border border-surface-variant z-10"></div>
+                    <div className="hidden md:block print:block h-full border-r border-dashed border-outline-variant"></div>
+                    <div className="md:hidden print:hidden w-full border-t border-dashed border-outline-variant relative">
+                      <div className="absolute -left-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-background border border-surface-variant z-10"></div>
+                      <div className="absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-background border border-surface-variant z-10"></div>
+                    </div>
+                    <div className="hidden md:block print:block absolute -bottom-3 left-1/2 -translate-x-1/2 w-6 h-6 rounded-full bg-background border border-surface-variant z-10"></div>
+                  </div>
+
+                  {/* Right Ticket Stub: QR & Actions */}
+                  <div className="md:w-56 print:w-56 bg-surface p-5 flex flex-col items-center justify-between gap-3 shrink-0 text-center border-t md:border-t-0 md:border-l border-surface-variant/40">
+                    <div className="space-y-0.5">
+                      <span className="text-xs font-bold text-on-surface truncate max-w-[180px] block" title={ticket.categoryName || ticket.gate}>
+                        {ticket.categoryName || ticket.gate}
+                      </span>
+                    </div>
+
+                    {/* QR Code */}
                     <div
                       onClick={() => setSelectedQrPass(ticket)}
-                      className="cursor-pointer group/qr relative bg-white p-3 rounded-2xl border-2 border-dashed border-primary/30 shadow-xs hover:border-primary transition-all inline-block"
+                      className="cursor-pointer bg-white p-2.5 rounded-xl border border-outline-variant/60 shadow-xs hover:border-primary transition-all"
                       title="Click to enlarge Turnstile Pass QR"
                     >
                       <img
                         src={ticket.qrCode}
-                        alt="Gate QR Code"
-                        className="w-28 h-28 object-contain rounded"
+                        alt="Ticket QR Code"
+                        className="w-24 h-24 object-contain"
                       />
-                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover/qr:opacity-100 transition-opacity rounded-2xl flex flex-col items-center justify-center text-white text-xs font-semibold gap-1 print:hidden">
-                        <span className="material-symbols-outlined text-2xl">zoom_in</span>
-                        <span>Enlarge Pass</span>
-                      </div>
                     </div>
 
-                    <div className="text-[10px] text-secondary font-mono">
-                      Scan at turnstile camera
-                    </div>
+                    <span className="text-[10px] text-secondary font-mono">Scan at Gate Turnstile</span>
 
                     {/* Action Buttons */}
-                    <div className="w-full space-y-2 pt-1 print:hidden">
+                    <div className="w-full space-y-1.5 print:hidden">
                       <button
                         onClick={() => handlePrintTicket(ticket)}
-                        className="w-full bg-primary hover:bg-primary-container text-white font-bold px-3 py-2 rounded-xl transition-all text-xs text-center flex items-center justify-center gap-1.5 shadow-sm cursor-pointer active:scale-95"
-                        title="Print Tazkara Match Pass"
+                        className="w-full bg-primary hover:bg-primary-container text-white font-bold py-1.5 px-3 rounded-lg text-xs transition-colors flex items-center justify-center gap-1.5 shadow-xs cursor-pointer"
                       >
-                        <span className="material-symbols-outlined text-base">print</span>
-                        <span>Print Tazkara • طباعة التذكرة</span>
-                      </button>
-
-                      <button
-                        onClick={() => setSelectedQrPass(ticket)}
-                        className="w-full bg-primary-container hover:bg-primary text-on-primary font-semibold px-3 py-2 rounded-xl transition-all text-xs text-center flex items-center justify-center gap-1.5 cursor-pointer shadow-xs active:scale-95"
-                        title="Open Turnstile Scanner QR Pass"
-                      >
-                        <span className="material-symbols-outlined text-base">qr_code_scanner</span>
-                        <span>Scan Pass</span>
+                        <span className="material-symbols-outlined text-sm">print</span>
+                        <span>Print Pass</span>
                       </button>
 
                       <button
                         onClick={() => setSelectedTicketForTransfer(ticket)}
-                        className="w-full bg-surface border border-outline-variant hover:bg-surface-container text-on-surface font-semibold px-3 py-2 rounded-xl transition-all text-xs text-center flex items-center justify-center gap-1.5 cursor-pointer shadow-xs active:scale-95"
-                        title="Transfer Stadium Pass"
+                        className="w-full bg-surface-container hover:bg-surface-container-high text-on-surface font-semibold py-1.5 px-3 rounded-lg text-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
                       >
-                        <span className="material-symbols-outlined text-base text-secondary">swap_horiz</span>
-                        <span>Transfer Pass</span>
+                        <span className="material-symbols-outlined text-sm text-secondary">swap_horiz</span>
+                        <span>Transfer</span>
                       </button>
                     </div>
                   </div>

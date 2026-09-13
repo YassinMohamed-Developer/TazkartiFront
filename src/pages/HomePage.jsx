@@ -382,6 +382,11 @@ export const HomePage = () => {
                     <span className="absolute top-3 right-3 bg-tertiary text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
                       {event.tag}
                     </span>
+                    {event.isActive === false && (
+                      <span className="absolute top-3 left-3 bg-error text-white text-[9px] font-bold px-2 py-0.5 rounded shadow uppercase">
+                        Sold Out
+                      </span>
+                    )}
                     <div className="absolute bottom-3 left-3 text-white">
                       <span className="text-[11px] text-white/80 uppercase tracking-wider font-label-sm">{event.category}</span>
                       <h4 className="font-semibold text-sm leading-tight line-clamp-1">{event.artist}</h4>
@@ -408,13 +413,19 @@ export const HomePage = () => {
                         <span className="text-[10px] text-secondary block">From</span>
                         <span className="text-sm font-bold text-tertiary">{event.minPrice} EGP</span>
                       </div>
-                      <Link
-                        to={`/events/${event.id}/book`}
-                        state={{ event }}
-                        className="bg-tertiary hover:bg-tertiary-container text-white font-body-md text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
-                      >
-                        Select Tier
-                      </Link>
+                      {event.isActive === false ? (
+                        <span className="bg-surface-container text-secondary font-body-md text-xs font-semibold px-3 py-1.5 rounded-lg cursor-not-allowed">
+                          Unavailable
+                        </span>
+                      ) : (
+                        <Link
+                          to={`/events/${event.id}/book`}
+                          state={{ event }}
+                          className="bg-tertiary hover:bg-tertiary-container text-white font-body-md text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
+                        >
+                          Select Tier
+                        </Link>
+                      )}
                     </div>
                   </div>
                 </div>

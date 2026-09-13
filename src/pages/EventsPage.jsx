@@ -9,13 +9,17 @@ export const EventsPage = () => {
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
 
-  const categories = [
+  const defaultCategories = [
     'All',
     'Music & Concerts',
     'Classical & Orchestra',
     'Rock & Indie',
     'Comedy & Theater',
   ];
+
+  const categories = events.length > 0
+    ? ['All', ...Array.from(new Set(events.map((e) => e.category).filter(Boolean)))]
+    : defaultCategories;
 
   const loadEvents = async () => {
     setIsLoading(true);
@@ -38,6 +42,7 @@ export const EventsPage = () => {
     const matchesCat =
       selectedCategory === 'All' ||
       event.category === selectedCategory ||
+      event.tag === selectedCategory ||
       String(event.categoryEnum) === String(selectedCategory);
 
     const query = searchQuery.toLowerCase().trim();
