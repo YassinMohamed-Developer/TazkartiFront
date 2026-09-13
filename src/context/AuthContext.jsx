@@ -79,12 +79,6 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
-  // Fetch profile on initial load if authenticated
-  useEffect(() => {
-    if (isAuthenticated && token) {
-      fetchProfile();
-    }
-  }, [isAuthenticated, token, fetchProfile]);
 
   /**
    * Logs in with National ID and Password and fetches full profile.

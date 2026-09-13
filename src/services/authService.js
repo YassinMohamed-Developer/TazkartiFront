@@ -440,14 +440,18 @@ export const signIn = async ({ nationalId, password }) => {
  * @param {Object} registrationData
  */
 export const registerUser = async (registrationData) => {
-  const rawPhoneNumber = String(registrationData.phoneNumber || registrationData.phone || '').trim();
-  const phoneNumber = rawPhoneNumber.startsWith('+20')
-    ? rawPhoneNumber
-    : rawPhoneNumber.startsWith('20')
-    ? `+${rawPhoneNumber}`
-    : rawPhoneNumber.startsWith('0')
-    ? `+20${rawPhoneNumber}`
-    : rawPhoneNumber;
+  let phoneNumber = String(registrationData.phoneNumber || registrationData.phone || '').trim();
+
+  // Normalize phone number to Egyptian format: 01xxxxxxxxx (11 digits) expected by backend regex ^01[0125]\d{8}$
+  if (phoneNumber.startsWith('+200')) {
+    phoneNumber = phoneNumber.slice(3);
+  } else if (phoneNumber.startsWith('+20')) {
+    phoneNumber = '0' + phoneNumber.slice(3);
+  } else if (phoneNumber.startsWith('200')) {
+    phoneNumber = phoneNumber.slice(2);
+  } else if (phoneNumber.startsWith('20') && phoneNumber.length === 12) {
+    phoneNumber = '0' + phoneNumber.slice(2);
+  }
 
   const rawDateOfBirth = registrationData.dateOfBirth || registrationData.dob || '';
   const dateOfBirth = /^\d{4}-\d{2}-\d{2}$/.test(rawDateOfBirth)
@@ -455,15 +459,16 @@ export const registerUser = async (registrationData) => {
     : rawDateOfBirth;
 
   const body = {
-    nationalName: registrationData.nationalName || registrationData.fullName,
-    email: registrationData.email,
+    nationalId: String(registrationData.nationalId || '').trim(),
+    nationalName: String(registrationData.nationalName || registrationData.fullName || '').trim(),
     dateOfBirth,
     gender: Number(registrationData.gender),
-    governorate: Number(registrationData.governorate),
     phoneNumber,
-    nationalId: registrationData.nationalId,
-    favouriteClubId: Number(registrationData.favouriteClubId ?? registrationData.favoriteClubId),
+    email: String(registrationData.email || '').trim(),
     Password: registrationData.Password || registrationData.password,
+    governorate: Number(registrationData.governorate),
+    favouriteClubId: Number(registrationData.favouriteClubId ?? registrationData.favoriteClubId),
+    avatarUrl: registrationData.avatarUrl || registrationData.avatarPreview || null,
   };
 
   const response = await apiRequest('/Auth/Register', {

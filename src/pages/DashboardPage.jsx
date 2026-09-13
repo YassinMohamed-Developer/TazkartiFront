@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useBooking } from '../context/BookingContext';
-import { getAllClubs } from '../services/authService';
 
 export const DashboardPage = () => {
   const { user, fetchProfile, isProfileLoading } = useAuth();
@@ -14,7 +13,6 @@ export const DashboardPage = () => {
   const [showSecurityModal, setShowSecurityModal] = useState(false);
   const [copiedField, setCopiedField] = useState('');
   const [syncStatus, setSyncStatus] = useState(null);
-  const [clubOptions, setClubOptions] = useState([]);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -23,21 +21,10 @@ export const DashboardPage = () => {
     return () => clearInterval(timer);
   }, []);
 
+  // Fetch fresh profile with club name when accessing My Fan ID dashboard
   useEffect(() => {
-    let isMounted = true;
-
-    getAllClubs()
-      .then((clubs) => {
-        if (isMounted) setClubOptions(Array.isArray(clubs) ? clubs : []);
-      })
-      .catch(() => {
-        // The saved club name or the profile response can still be displayed if clubs are offline.
-      });
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
+    fetchProfile();
+  }, [fetchProfile]);
 
   const handleCopy = (text, fieldName) => {
     if (!text || text === '---') return;
@@ -66,14 +53,11 @@ export const DashboardPage = () => {
   };
 
   const latestTicket = tickets?.[0];
-  const storedFavoriteClubId = localStorage.getItem('tazkarti_favorite_club');
   const storedFavoriteClubName = localStorage.getItem('tazkarti_favorite_club_name');
-  const favoriteClubId = user?.favoriteClubId || user?.favoriteClub || storedFavoriteClubId;
   const favoriteClub =
     user?.favoriteClubName ||
+    user?.favoriteClub ||
     storedFavoriteClubName ||
-    clubOptions.find((club) => String(club.id) === String(favoriteClubId))?.name ||
-    favoriteClubId ||
     '---';
 
   return (

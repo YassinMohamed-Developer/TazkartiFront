@@ -89,17 +89,19 @@ export const RegisterPage = () => {
     setErrorInfo(null);
     setFieldErrors({});
 
-    // Basic frontend validations before hitting backend
-    if (!formData.nationalId || formData.nationalId.length !== 14) {
+    // 1. National ID validation: 14 numeric digits
+    const NATIONAL_ID_REGEX = /^[0-9]{14}$/;
+    if (!formData.nationalId || !NATIONAL_ID_REGEX.test(formData.nationalId.trim())) {
       setErrorInfo({
-        message: 'Please enter a valid 14-digit Egyptian National ID.',
+        message: 'National ID must be exactly 14 numeric digits.',
         isNetworkError: false,
       });
-      setFieldErrors({ nationalId: 'National ID must be exactly 14 digits.' });
+      setFieldErrors({ nationalId: 'National ID must be 14 digits.' });
       setCurrentStep(1);
       return;
     }
 
+    // 2. Full Name validation
     if (!formData.nationalName.trim()) {
       setErrorInfo({
         message: 'Please enter your full official name as on your ID.',
@@ -110,6 +112,7 @@ export const RegisterPage = () => {
       return;
     }
 
+    // 3. Date of Birth validation
     if (!formData.dateOfBirth) {
       setErrorInfo({
         message: 'Please provide your date of birth.',
@@ -120,24 +123,31 @@ export const RegisterPage = () => {
       return;
     }
 
-    if (!formData.phoneNumber) {
+    // 4. Egyptian Phone Number validation: ^01[0125]\d{8}$
+    const EGYPTIAN_PHONE_REGEX = /^01[0125]\d{8}$/;
+    const cleanPhone = formData.phoneNumber.trim().replace(/^\+20/, '').replace(/^20/, '');
+    const phoneToTest = cleanPhone.startsWith('0') ? cleanPhone : `0${cleanPhone}`;
+    if (!formData.phoneNumber || !EGYPTIAN_PHONE_REGEX.test(phoneToTest)) {
       setErrorInfo({
-        message: 'Please provide your active mobile phone number.',
+        message: 'Please enter a valid Egyptian phone number (11 digits, e.g. 01012345678).',
         isNetworkError: false,
       });
-      setFieldErrors({ phoneNumber: 'Phone number is required.' });
+      setFieldErrors({ phoneNumber: 'Please enter a valid Egyptian phone number (010, 011, 012, 015).' });
       return;
     }
 
-    if (!formData.email) {
+    // 5. Email validation
+    const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!formData.email || !EMAIL_REGEX.test(formData.email.trim())) {
       setErrorInfo({
-        message: 'Please provide a valid email address.',
+        message: 'Please provide a valid email address (e.g. name@example.com).',
         isNetworkError: false,
       });
-      setFieldErrors({ email: 'Email address is required.' });
+      setFieldErrors({ email: 'Please enter a valid email address.' });
       return;
     }
 
+    // 6. Favourite Club validation
     if (!formData.favoriteClub) {
       setErrorInfo({
         message: 'Please choose your favourite club to complete your Fan ID profile.',
@@ -147,26 +157,29 @@ export const RegisterPage = () => {
       return;
     }
 
-    if (!formData.password || formData.password.length < 6) {
+    // 7. Password validation: Starts with uppercase letter (A-Z) and min 6 characters
+    const PASSWORD_REGEX = /^[A-Z][A-Za-z\d@$!%*?&#^(){}[\]<>_+=|\\~`:;,\.\/-]{5,}$/;
+    if (!formData.password || !PASSWORD_REGEX.test(formData.password)) {
       setErrorInfo({
-        message: 'Password must be at least 6 characters in length.',
+        message: 'Password must start with an uppercase letter (A-Z) and be at least 6 characters long.',
         isNetworkError: false,
       });
-      setFieldErrors({ password: 'Password must be at least 6 characters.' });
+      setFieldErrors({ password: 'Password must start with an uppercase letter (A-Z) and contain at least 6 characters.' });
       return;
     }
 
     try {
       const payload = {
+        nationalId: formData.nationalId.trim(),
         nationalName: formData.nationalName.trim(),
-        email: formData.email.trim(),
         dateOfBirth: formData.dateOfBirth,
         gender: Number(formData.gender),
-        governorate: Number(formData.governorate),
-        phoneNumber: formData.phoneNumber.trim(),
-        nationalId: formData.nationalId.trim(),
-        favouriteClubId: Number(formData.favoriteClub),
+        phoneNumber: phoneToTest,
+        email: formData.email.trim(),
         Password: formData.password,
+        governorate: Number(formData.governorate),
+        favouriteClubId: Number(formData.favoriteClub),
+        avatarUrl: formData.avatarPreview || null,
       };
 
       const result = await register(payload);
@@ -178,7 +191,7 @@ export const RegisterPage = () => {
         state: {
           from: location.state?.from,
           notice: location.state?.notice,
-          message: result.message || 'Registration completed successfully! Please sign in with your National ID.',
+          message: result?.message || 'Registration completed successfully! Please sign in with your National ID.',
         },
       });
     } catch (err) {
@@ -593,18 +606,19 @@ export const RegisterPage = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block font-label-sm text-on-surface mb-2 font-semibold">
-                    Egyptian Mobile Number
+                    Egyptian Mobile Number (رقم الموبايل)
                   </label>
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-secondary">
-                      +20
-                    </span>
+                    <div className="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-secondary">
+                      <span className="material-symbols-outlined text-base">phone_iphone</span>
+                    </div>
                     <input
                       type="tel"
+                      maxLength={11}
                       value={formData.phoneNumber}
                       onChange={(e) => handleInputChange('phoneNumber', e.target.value)}
                       placeholder="01012345678"
-                      className={`w-full bg-surface-container-lowest border rounded-lg pl-14 pr-4 py-3 text-sm focus:outline-none ${
+                      className={`w-full bg-surface-container-lowest border rounded-lg pl-10 pr-4 py-3 text-sm focus:outline-none ${
                         fieldErrors.phoneNumber
                           ? 'border-primary focus:border-primary'
                           : 'border-outline-variant/60 focus:border-primary'
@@ -612,6 +626,9 @@ export const RegisterPage = () => {
                       required
                     />
                   </div>
+                  <p className="text-[11px] text-secondary mt-1">
+                    11 digits starting with 010, 011, 012, or 015
+                  </p>
                   {fieldErrors.phoneNumber && (
                     <p className="text-xs text-primary font-semibold mt-1 flex items-center gap-1">
                       <span className="material-symbols-outlined text-xs">info</span>
@@ -622,7 +639,7 @@ export const RegisterPage = () => {
 
                 <div>
                   <label className="block font-label-sm text-on-surface mb-2 font-semibold">
-                    Email Address
+                    Email Address (البريد الإلكتروني)
                   </label>
                   <input
                     type="email"
@@ -670,14 +687,14 @@ export const RegisterPage = () => {
 
                 <div>
                   <label className="block font-label-sm text-on-surface mb-2 font-semibold">
-                    Create Password
+                    Create Password (كلمة المرور)
                   </label>
                   <div className="relative">
                     <input
                       type={showPassword ? 'text' : 'password'}
                       value={formData.password}
                       onChange={(e) => handleInputChange('password', e.target.value)}
-                      placeholder="Min 6 characters"
+                      placeholder="e.g. Pass@123"
                       className={`w-full bg-surface-container-lowest border rounded-lg pl-4 pr-10 py-3 text-sm focus:outline-none ${
                         fieldErrors.password
                           ? 'border-primary focus:border-primary'
@@ -695,6 +712,9 @@ export const RegisterPage = () => {
                       </span>
                     </button>
                   </div>
+                  <p className="text-[11px] text-secondary mt-1">
+                    Must start with uppercase letter (A-Z) and be at least 6 characters
+                  </p>
                   {fieldErrors.password && (
                     <p className="text-xs text-primary font-semibold mt-1 flex items-center gap-1">
                       <span className="material-symbols-outlined text-xs">info</span>

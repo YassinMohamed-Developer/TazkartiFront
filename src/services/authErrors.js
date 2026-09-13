@@ -129,7 +129,19 @@ export const formatAuthErrorMessage = (raw) => {
     return 'Unable to complete password reset at this time. Please try again later.';
   }
 
-  // Password complexity from ASP.NET Identity
+  // Phone number
+  if (
+    lower.includes('phone') ||
+    lower.includes('egyptian phone') ||
+    lower.includes('phonenumber')
+  ) {
+    return 'Please enter a valid Egyptian phone number (11 digits, starting with 010, 011, 012, or 015).';
+  }
+
+  // Password complexity / regex from ASP.NET Identity & DTO
+  if (lower.includes('password') && (lower.includes('regular expression') || lower.includes('regex') || lower.includes('pattern') || lower.includes('match'))) {
+    return 'Password must start with an uppercase letter (A-Z) and contain at least 6 characters.';
+  }
   if (lower.includes('non alphanumeric')) {
     return 'Password must contain at least one special character (e.g. !@#$%^&*).';
   }
@@ -142,8 +154,13 @@ export const formatAuthErrorMessage = (raw) => {
   if (lower.includes('lowercase') && lower.includes('password')) {
     return 'Password must contain at least one lowercase letter (a-z).';
   }
-  if (lower.includes('must be at least') && lower.includes('characters')) {
+  if (lower.includes('must be at least') && lower.includes('characters') && lower.includes('password')) {
     return 'Password must be at least 6 characters in length.';
+  }
+
+  // National ID format
+  if (lower.includes('national id') && (lower.includes('14') || lower.includes('digit') || lower.includes('regular expression'))) {
+    return 'National ID must be exactly 14 numeric digits.';
   }
 
   return clean;
@@ -164,6 +181,11 @@ export const formatAuthErrorMessage = (raw) => {
  */
 export const mapAuthErrorsToFields = (rawErrors) => {
   let errorList = [];
+  const fieldErrors = {};
+  const generalErrors = [];
+  let isNetworkError = false;
+  let isAlreadyRegistered = false;
+  let isCredentialError = false;
 
   if (Array.isArray(rawErrors)) {
     errorList = rawErrors;
@@ -173,17 +195,36 @@ export const mapAuthErrorsToFields = (rawErrors) => {
     if (Array.isArray(rawErrors.errors)) {
       errorList = rawErrors.errors;
     } else if (rawErrors.errors && typeof rawErrors.errors === 'object') {
-      errorList = Object.values(rawErrors.errors).flat();
+      // Map dictionary of errors like { PhoneNumber: ["Please enter..."], Password: [...] }
+      for (const [fieldKey, msgs] of Object.entries(rawErrors.errors)) {
+        const msgList = Array.isArray(msgs) ? msgs : [msgs];
+        const kLower = fieldKey.toLowerCase();
+        for (const msg of msgList) {
+          const friendly = formatAuthErrorMessage(msg);
+          if (kLower.includes('phone')) {
+            fieldErrors.phoneNumber = friendly;
+          } else if (kLower.includes('password')) {
+            fieldErrors.password = friendly;
+          } else if (kLower.includes('nationalid') || kLower.includes('national id')) {
+            fieldErrors.nationalId = friendly;
+          } else if (kLower.includes('nationalname') || kLower.includes('fullname') || kLower.includes('name')) {
+            fieldErrors.nationalName = friendly;
+          } else if (kLower.includes('email')) {
+            fieldErrors.email = friendly;
+          } else if (kLower.includes('dateofbirth') || kLower.includes('dob')) {
+            fieldErrors.dateOfBirth = friendly;
+          } else if (kLower.includes('club')) {
+            fieldErrors.favoriteClub = friendly;
+          } else {
+            generalErrors.push(friendly);
+          }
+          errorList.push(msg);
+        }
+      }
     } else if (rawErrors.message) {
       errorList = [rawErrors.message];
     }
   }
-
-  const fieldErrors = {};
-  const generalErrors = [];
-  let isNetworkError = false;
-  let isAlreadyRegistered = false;
-  let isCredentialError = false;
 
   for (const err of errorList) {
     if (!err || typeof err !== 'string') continue;
@@ -218,6 +259,7 @@ export const mapAuthErrorsToFields = (rawErrors) => {
       (lower.includes('national id') && !lower.includes('credentials'))
     ) {
       fieldErrors.nationalId = friendly;
+      generalErrors.push(friendly);
     } else if (
       err.includes(AuthErrors.InvalidEmail.trim()) ||
       err.includes(AuthErrors.EmailAlreadyExists.trim()) ||
@@ -250,6 +292,9 @@ export const mapAuthErrorsToFields = (rawErrors) => {
       generalErrors.push(friendly);
     } else if (lower.includes('phone')) {
       fieldErrors.phoneNumber = friendly;
+      generalErrors.push(friendly);
+    } else if (lower.includes('club')) {
+      fieldErrors.favoriteClub = friendly;
       generalErrors.push(friendly);
     } else {
       generalErrors.push(friendly);
