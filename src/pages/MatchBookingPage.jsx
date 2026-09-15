@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { getAllMatches } from '../services/authService';
+import { getMatchById } from '../services/authService';
 import { useBooking } from '../context/BookingContext';
 
 export const MatchBookingPage = () => {
@@ -18,13 +18,7 @@ export const MatchBookingPage = () => {
 
     const loadMatch = async () => {
       try {
-        const matchData = await getAllMatches();
-        const selectedMatch = matchData.find(item => 
-          String(item.id) === String(id) ||
-          String(item.matchId) === String(id) ||
-          `match-${matchData.indexOf(item) + 1}` === String(id) ||
-          `match-${item.matchId}` === String(id)
-        );
+        const selectedMatch = await getMatchById(id);
 
         if (!selectedMatch) {
           throw new Error('This match could not be found.');

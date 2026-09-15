@@ -223,14 +223,14 @@ export const MyTicketsPage = () => {
     setDbTickets((prev) =>
       prev.map((t) =>
         t.bookingOrderId === selectedTicketForTransfer.bookingOrderId ||
-        t.ticketPassId === selectedTicketForTransfer.ticketPassId
+          t.ticketPassId === selectedTicketForTransfer.ticketPassId
           ? {
-              ...t,
-              currentFanId: `Fan Id : ${updatedTarget}`,
-              cleanFanId: updatedTarget,
-              status: 3,
-              statusLabel: 'Transferred',
-            }
+            ...t,
+            currentFanId: `Fan Id : ${updatedTarget}`,
+            cleanFanId: updatedTarget,
+            status: 3,
+            statusLabel: 'Transferred',
+          }
           : t
       )
     );
@@ -466,19 +466,19 @@ export const MyTicketsPage = () => {
             selectedGateFilter !== 'ALL' ||
             selectedCompetitionFilter !== 'ALL' ||
             selectedTypeFilter !== 'ALL') && (
-            <button
-              onClick={() => {
-                setSearchQuery('');
-                setSelectedGateFilter('ALL');
-                setSelectedCompetitionFilter('ALL');
-                setSelectedTypeFilter('ALL');
-              }}
-              className="self-start sm:self-auto text-xs text-primary hover:underline font-semibold flex items-center gap-1 shrink-0"
-            >
-              <span className="material-symbols-outlined text-sm">filter_alt_off</span>
-              <span>Reset Filters</span>
-            </button>
-          )}
+              <button
+                onClick={() => {
+                  setSearchQuery('');
+                  setSelectedGateFilter('ALL');
+                  setSelectedCompetitionFilter('ALL');
+                  setSelectedTypeFilter('ALL');
+                }}
+                className="self-start sm:self-auto text-xs text-primary hover:underline font-semibold flex items-center gap-1 shrink-0"
+              >
+                <span className="material-symbols-outlined text-sm">filter_alt_off</span>
+                <span>Reset Filters</span>
+              </button>
+            )}
         </div>
 
         {/* Filter Chips Bars */}
@@ -490,32 +490,29 @@ export const MyTicketsPage = () => {
             </span>
             <button
               onClick={() => setSelectedTypeFilter('ALL')}
-              className={`px-3 py-1 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
-                selectedTypeFilter === 'ALL'
+              className={`px-3 py-1 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${selectedTypeFilter === 'ALL'
                   ? 'bg-primary text-white shadow-xs'
                   : 'bg-surface border border-outline-variant text-secondary hover:text-on-surface'
-              }`}
+                }`}
             >
               All Passes ({dbTickets.length})
             </button>
             <button
               onClick={() => setSelectedTypeFilter('MATCH')}
-              className={`px-3 py-1 rounded-lg text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1 ${
-                selectedTypeFilter === 'MATCH'
+              className={`px-3 py-1 rounded-lg text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1 ${selectedTypeFilter === 'MATCH'
                   ? 'bg-primary text-white shadow-xs'
                   : 'bg-surface border border-outline-variant text-secondary hover:text-on-surface'
-              }`}
+                }`}
             >
               <span className="material-symbols-outlined text-sm">sports_soccer</span>
               <span>Matches ({stats.matchCount})</span>
             </button>
             <button
               onClick={() => setSelectedTypeFilter('EVENT')}
-              className={`px-3 py-1 rounded-lg text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1 ${
-                selectedTypeFilter === 'EVENT'
+              className={`px-3 py-1 rounded-lg text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1 ${selectedTypeFilter === 'EVENT'
                   ? 'bg-tertiary text-white shadow-xs'
                   : 'bg-surface border border-outline-variant text-secondary hover:text-on-surface'
-              }`}
+                }`}
             >
               <span className="material-symbols-outlined text-sm">theater_comedy</span>
               <span>Live Events ({stats.eventCount})</span>
@@ -529,11 +526,10 @@ export const MyTicketsPage = () => {
             </span>
             <button
               onClick={() => setSelectedGateFilter('ALL')}
-              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
-                selectedGateFilter === 'ALL'
+              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${selectedGateFilter === 'ALL'
                   ? 'bg-primary text-white shadow-xs'
                   : 'bg-surface border border-outline-variant text-secondary hover:text-on-surface'
-              }`}
+                }`}
             >
               All Gates
             </button>
@@ -543,11 +539,10 @@ export const MyTicketsPage = () => {
                 <button
                   key={gate}
                   onClick={() => setSelectedGateFilter(gate)}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
-                    selectedGateFilter === gate
+                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${selectedGateFilter === gate
                       ? 'bg-primary text-white shadow-xs'
                       : 'bg-surface border border-outline-variant text-secondary hover:text-on-surface'
-                  }`}
+                    }`}
                 >
                   {gate} ({count})
                 </button>
@@ -596,9 +591,8 @@ export const MyTicketsPage = () => {
                 return (
                   <div
                     key={ticketId}
-                    className={`tazkara-card bg-surface-container-lowest rounded-2xl border border-surface-variant/80 shadow-sm hover:shadow-md transition-all overflow-hidden flex flex-col md:flex-row print:flex-row relative group print:m-0 print:border-outline-variant print:shadow-none ${
-                      isPrintingThis ? 'printing-target' : ''
-                    }`}
+                    className={`tazkara-card bg-surface-container-lowest rounded-2xl border border-surface-variant/80 shadow-sm hover:shadow-md transition-all overflow-hidden flex flex-col md:flex-row print:flex-row relative group print:m-0 print:border-outline-variant print:shadow-none ${isPrintingThis ? 'printing-target' : ''
+                      }`}
                   >
                     {/* Left Brand Accent Line */}
                     <div className="hidden md:block print:block w-2 bg-tertiary shrink-0"></div>
@@ -627,15 +621,14 @@ export const MyTicketsPage = () => {
 
                           {/* Status Badge */}
                           <span
-                            className={`text-[11px] font-bold px-2.5 py-0.5 rounded-md flex items-center gap-1 uppercase ${
-                              isInactive
+                            className={`text-[11px] font-bold px-2.5 py-0.5 rounded-md flex items-center gap-1 uppercase ${isInactive
                                 ? 'bg-error/10 text-error'
                                 : ticket.status === 3
-                                ? 'bg-tertiary/10 text-tertiary'
-                                : ticket.status === 2
-                                ? 'bg-golden-gate/10 text-golden-gate'
-                                : 'bg-pitch-green/10 text-pitch-green'
-                            }`}
+                                  ? 'bg-tertiary/10 text-tertiary'
+                                  : ticket.status === 2
+                                    ? 'bg-golden-gate/10 text-golden-gate'
+                                    : 'bg-pitch-green/10 text-pitch-green'
+                              }`}
                           >
                             <span className="w-1.5 h-1.5 rounded-full bg-current"></span>
                             <span>{isInactive ? 'Cancelled' : ticket.statusLabel}</span>
@@ -768,9 +761,8 @@ export const MyTicketsPage = () => {
               return (
                 <div
                   key={ticketId}
-                  className={`tazkara-card bg-surface-container-lowest rounded-2xl border border-surface-variant/80 shadow-sm hover:shadow-md transition-all overflow-hidden flex flex-col md:flex-row print:flex-row relative group print:m-0 print:border-outline-variant print:shadow-none ${
-                    isPrintingThis ? 'printing-target' : ''
-                  }`}
+                  className={`tazkara-card bg-surface-container-lowest rounded-2xl border border-surface-variant/80 shadow-sm hover:shadow-md transition-all overflow-hidden flex flex-col md:flex-row print:flex-row relative group print:m-0 print:border-outline-variant print:shadow-none ${isPrintingThis ? 'printing-target' : ''
+                    }`}
                 >
                   {/* Left Brand Accent Line - Red for Match */}
                   <div className="hidden md:block print:block w-2 bg-primary shrink-0"></div>
@@ -805,15 +797,14 @@ export const MyTicketsPage = () => {
 
                         {/* Status Badge */}
                         <span
-                          className={`text-[11px] font-bold px-2.5 py-0.5 rounded-md flex items-center gap-1 uppercase ${
-                            isInactiveMatch
+                          className={`text-[11px] font-bold px-2.5 py-0.5 rounded-md flex items-center gap-1 uppercase ${isInactiveMatch
                               ? 'bg-error/10 text-error'
                               : ticket.status === 3
-                              ? 'bg-tertiary/10 text-tertiary'
-                              : ticket.status === 2
-                              ? 'bg-golden-gate/10 text-golden-gate'
-                              : 'bg-pitch-green/10 text-pitch-green'
-                          }`}
+                                ? 'bg-tertiary/10 text-tertiary'
+                                : ticket.status === 2
+                                  ? 'bg-golden-gate/10 text-golden-gate'
+                                  : 'bg-pitch-green/10 text-pitch-green'
+                            }`}
                         >
                           <span className="w-1.5 h-1.5 rounded-full bg-current"></span>
                           <span>{isInactiveMatch ? 'Cancelled' : ticket.statusLabel}</span>

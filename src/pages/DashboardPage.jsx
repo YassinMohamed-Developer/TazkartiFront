@@ -91,11 +91,10 @@ export const DashboardPage = () => {
       {/* Sync Status Toast/Banner */}
       {syncStatus && (
         <div
-          className={`mb-6 p-4 rounded-xl flex items-center justify-between gap-3 border transition-all animate-fadeIn ${
-            syncStatus.type === 'success'
+          className={`mb-6 p-4 rounded-xl flex items-center justify-between gap-3 border transition-all animate-fadeIn ${syncStatus.type === 'success'
               ? 'bg-status-success/10 border-status-success/30 text-status-success'
               : 'bg-amber-500/10 border-amber-500/30 text-amber-900 dark:text-amber-200'
-          }`}
+            }`}
         >
           <div className="flex items-center gap-2.5 text-sm">
             <span className="material-symbols-outlined text-xl">

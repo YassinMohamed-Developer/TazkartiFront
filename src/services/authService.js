@@ -570,7 +570,111 @@ const getAvailabilityLabel = (availabilityStatus, availabilityPercent) => {
 };
 
 /**
- * Fetches all matches and maps the backend arrays into the shape used by the UI.
+ * Normalizes match data whether from GetAllMatches (summary) or GetMatchById (details with categories).
+ */
+export const normalizeMatchData = (match, matchIndex = 0) => {
+  if (!match || typeof match !== 'object') return null;
+
+  const fallbackData = KNOWN_MATCH_BACKEND_DATA[matchIndex] || {};
+
+  const rawMatchId = toNullablePositiveInteger(match.id ?? match.matchId ?? match.matchID);
+  const matchId = rawMatchId || fallbackData.matchId || (matchIndex + 2);
+
+  const rawVenueId = toNullablePositiveInteger(match.venueId ?? match.venueID);
+  const venueId = rawVenueId || fallbackData.venueId || VENUE_NAME_TO_ID[match.venueName] || 1;
+
+  const city = (match.city || fallbackData.city || VENUE_ID_TO_CITY[venueId] || 'Cairo').trim();
+  const id = String(matchId);
+
+  const categoryNames = Array.isArray(match.nameOfCategoryMatch) ? match.nameOfCategoryMatch : [];
+  const prices = Array.isArray(match.price) ? match.price : [];
+  const availableSeats = Array.isArray(match.available) ? match.available : [];
+  const gates = Array.isArray(match.gateAllocation) ? match.gateAllocation : [];
+  const categoryIds = [
+    match.categoryId,
+    match.categoryIds,
+    match.categoryIDs,
+    match.matchTicketCategoryIds,
+    match.matchTicketCategoryIDs,
+    match.idOfCategoryMatch,
+  ].find(Array.isArray) || [];
+  const categoryObjects = Array.isArray(match.categories) ? match.categories : [];
+
+  const knownCatIds = fallbackData.categoryIds || [];
+
+  const venueImages = {
+    'Cairo International Stadium': '/venues/cairo-international-stadium.png',
+    'Borg El Arab Stadium': '/venues/borg-el-arab-stadium.png',
+    '30 June Stadium (Air Defense)': '/venues/30-june-stadium.png',
+    'Alexandria Stadium': '/venues/alexandria-stadium.png',
+    'Ismailia Stadium': '/venues/ismailia-stadium.png',
+    'Ghazl El Mahalla Stadium': '/venues/ghazl-el-mahalla-stadium.png',
+  };
+
+  const bannerImage = (match.bannerImage && typeof match.bannerImage === 'string' && match.bannerImage.trim())
+    ? match.bannerImage.trim()
+    : (venueImages[match.venueName] || venueImages[match.venue] || '/venues/cairo-international-stadium.png');
+
+  let categories = categoryNames.map((rawName, categoryIndex) => {
+    const categoryObject = typeof rawName === 'object' ? rawName : categoryObjects[categoryIndex];
+    const name = typeof rawName === 'object'
+      ? (rawName.name || rawName.categoryName || rawName.title || `Category ${categoryIndex + 1}`)
+      : rawName;
+    const rawId = categoryIds[categoryIndex]
+      ?? categoryObject?.id
+      ?? categoryObject?.categoryId
+      ?? knownCatIds[categoryIndex];
+
+    const resolvedCatId = toNullablePositiveInteger(rawId) || (knownCatIds[categoryIndex] ?? (categoryIndex + 1));
+
+    return {
+      id: resolvedCatId,
+      categoryId: resolvedCatId,
+      name,
+      price: Number(prices[categoryIndex]) || Number(match.minPrice) || 100,
+      available: Number(availableSeats[categoryIndex]) || 100,
+      gate: gates[categoryIndex] || 'Main Gate',
+      color: TEAM_COLORS[categoryIndex % TEAM_COLORS.length],
+    };
+  });
+
+  // If no categories were returned (e.g. from GetAllMatches summary), provide standard categories based on minPrice
+  if (categories.length === 0) {
+    const basePrice = Number(match.minPrice) || 100;
+    categories = [
+      { id: knownCatIds[0] || 2, categoryId: knownCatIds[0] || 2, name: 'Category 1 - Lower Central', price: basePrice * 3, available: 150, gate: 'Gate 1', color: TEAM_COLORS[0] },
+      { id: knownCatIds[1] || 3, categoryId: knownCatIds[1] || 3, name: 'Category 2 - Upper Center', price: basePrice * 2, available: 300, gate: 'Gate 2', color: TEAM_COLORS[1] },
+      { id: knownCatIds[2] || 4, categoryId: knownCatIds[2] || 4, name: 'Category 3 - Curva Fan End', price: basePrice, available: 500, gate: 'Gate 4', color: TEAM_COLORS[2] },
+    ];
+  }
+
+  return {
+    ...match,
+    id,
+    matchId,
+    venueId,
+    title: match.title || 'Untitled Match',
+    league: match.competition || 'Egyptian Premier League',
+    competition: match.competition || 'Egyptian Premier League',
+    round: match.round || '',
+    date: formatDate(match.matchDate),
+    time: match.kickoffTime || '20:00',
+    venue: match.venueName || match.venue || 'Cairo International Stadium',
+    venueName: match.venueName || match.venue || 'Cairo International Stadium',
+    city,
+    gateOpen: match.gateOpenTime || '',
+    availability: getAvailabilityLabel(match.availabilityStatus, match.availabilityPercent),
+    availabilityPercent: Number(match.availabilityPercent) || 0,
+    minPrice: Number(match.minPrice) || 0,
+    bannerImage,
+    homeTeam: createTeam(match.homeTeamName || match.homeTeam),
+    awayTeam: createTeam(match.awayTeamName || match.awayTeam),
+    categories,
+  };
+};
+
+/**
+ * Fetches all matches from backend database.
  * GET https://localhost:7020/api/Matches/GetAllMatches
  */
 export const getAllMatches = async () => {
@@ -580,77 +684,31 @@ export const getAllMatches = async () => {
 
   if (!Array.isArray(response?.data)) return [];
 
-  return response.data.map((match, matchIndex) => {
-    const categoryNames = Array.isArray(match.nameOfCategoryMatch) ? match.nameOfCategoryMatch : [];
-    const prices = Array.isArray(match.price) ? match.price : [];
-    const availableSeats = Array.isArray(match.available) ? match.available : [];
-    const gates = Array.isArray(match.gateAllocation) ? match.gateAllocation : [];
-    const categoryIds = [
-      match.categoryIds,
-      match.categoryIDs,
-      match.matchTicketCategoryIds,
-      match.matchTicketCategoryIDs,
-      match.idOfCategoryMatch,
-      match.categoryId,
-    ].find(Array.isArray) || [];
-    const categoryObjects = Array.isArray(match.categories) ? match.categories : [];
+  return response.data.map((match, matchIndex) => normalizeMatchData(match, matchIndex)).filter(Boolean);
+};
 
-    const fallbackData = KNOWN_MATCH_BACKEND_DATA[matchIndex] || {};
+/**
+ * Fetches single match details with categories by Match ID.
+ * GET https://localhost:7020/api/Matches/GetMatchById/{id}
+ */
+export const getMatchById = async (id) => {
+  const numericId = Number(String(id).replace(/^match-?/i, ''));
 
-    const rawMatchId = toNullablePositiveInteger(match.matchId ?? match.matchID ?? match.id);
-    const matchId = rawMatchId || fallbackData.matchId || (matchIndex + 2);
+  try {
+    const response = await apiRequest(`/Matches/GetMatchById/${numericId || id}`, {
+      method: 'GET',
+    });
 
-    const rawVenueId = toNullablePositiveInteger(match.venueId ?? match.venueID);
-    const venueId = rawVenueId || fallbackData.venueId || VENUE_NAME_TO_ID[match.venueName] || 1;
+    if (response?.data) {
+      return normalizeMatchData(response.data);
+    }
+  } catch (error) {
+    console.warn(`[Tazkarti Service] Failed to fetch match ${id} via GetMatchById, falling back to GetAllMatches:`, error.message);
+  }
 
-    const city = (match.city || fallbackData.city || VENUE_ID_TO_CITY[venueId] || 'Cairo').trim();
-
-    // Use string matchId for URL routing (e.g. "2") while supporting legacy match-1 links
-    const id = String(matchId);
-
-    const knownCatIds = fallbackData.categoryIds || [];
-
-    return {
-      ...match,
-      id,
-      matchId,
-      venueId,
-      title: match.title || 'Untitled Match',
-      league: match.competition || 'Football Match',
-      date: formatDate(match.matchDate),
-      time: match.kickoffTime || 'Time unavailable',
-      venue: match.venueName || 'Venue unavailable',
-      city,
-      gateOpen: match.gateOpenTime || '',
-      availability: getAvailabilityLabel(match.availabilityStatus, match.availabilityPercent),
-      availabilityPercent: Number(match.availabilityPercent) || 0,
-      minPrice: Number(match.minPrice) || 0,
-      homeTeam: createTeam(match.homeTeamName),
-      awayTeam: createTeam(match.awayTeamName),
-      categories: categoryNames.map((rawName, categoryIndex) => {
-        const categoryObject = typeof rawName === 'object' ? rawName : categoryObjects[categoryIndex];
-        const name = typeof rawName === 'object'
-          ? (rawName.name || rawName.categoryName || rawName.title || `Category ${categoryIndex + 1}`)
-          : rawName;
-        const rawId = categoryIds[categoryIndex]
-          ?? categoryObject?.id
-          ?? categoryObject?.categoryId
-          ?? knownCatIds[categoryIndex];
-
-        const categoryId = toNullablePositiveInteger(rawId) || (knownCatIds[categoryIndex] ?? (categoryIndex + 1));
-
-        return {
-          id: categoryId,
-          categoryId,
-          name,
-          price: Number(prices[categoryIndex]) || 0,
-          available: Number(availableSeats[categoryIndex]) || 0,
-          gate: gates[categoryIndex] || 'Main Gate',
-          color: TEAM_COLORS[categoryIndex % TEAM_COLORS.length],
-        };
-      }),
-    };
-  });
+  // Fallback: load all matches and find the match
+  const matches = await getAllMatches();
+  return matches.find(m => String(m.id) === String(id) || String(m.matchId) === String(id) || String(m.matchId) === String(numericId)) || null;
 };
 
 /**
@@ -1168,6 +1226,8 @@ export default {
   getAllClubs,
   getAllVenues,
   getAllMatches,
+  getMatchById,
+  normalizeMatchData,
   createBooking,
   buildBookingRequest,
   BOOKING_TYPE_VALUES,

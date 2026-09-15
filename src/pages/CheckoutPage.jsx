@@ -129,11 +129,10 @@ export const CheckoutPage = () => {
               <button
                 type="button"
                 onClick={() => setPaymentMethod('card')}
-                className={`p-3 rounded-xl border flex flex-col items-center text-center gap-1.5 transition-all ${
-                  paymentMethod === 'card'
+                className={`p-3 rounded-xl border flex flex-col items-center text-center gap-1.5 transition-all ${paymentMethod === 'card'
                     ? 'border-primary bg-primary/5 text-primary font-bold shadow-sm'
                     : 'border-surface-variant bg-surface hover:border-primary/50 text-secondary'
-                }`}
+                  }`}
               >
                 <span className="material-symbols-outlined text-2xl">credit_card</span>
                 <span className="text-xs">Bank Card</span>
@@ -143,11 +142,10 @@ export const CheckoutPage = () => {
               <button
                 type="button"
                 onClick={() => setPaymentMethod('instapay')}
-                className={`p-3 rounded-xl border flex flex-col items-center text-center gap-1.5 transition-all ${
-                  paymentMethod === 'instapay'
+                className={`p-3 rounded-xl border flex flex-col items-center text-center gap-1.5 transition-all ${paymentMethod === 'instapay'
                     ? 'border-primary bg-primary/5 text-primary font-bold shadow-sm'
                     : 'border-surface-variant bg-surface hover:border-primary/50 text-secondary'
-                }`}
+                  }`}
               >
                 <span className="material-symbols-outlined text-2xl text-pitch-green">account_balance</span>
                 <span className="text-xs">InstaPay</span>
@@ -157,11 +155,10 @@ export const CheckoutPage = () => {
               <button
                 type="button"
                 onClick={() => setPaymentMethod('meeza')}
-                className={`p-3 rounded-xl border flex flex-col items-center text-center gap-1.5 transition-all ${
-                  paymentMethod === 'meeza'
+                className={`p-3 rounded-xl border flex flex-col items-center text-center gap-1.5 transition-all ${paymentMethod === 'meeza'
                     ? 'border-primary bg-primary/5 text-primary font-bold shadow-sm'
                     : 'border-surface-variant bg-surface hover:border-primary/50 text-secondary'
-                }`}
+                  }`}
               >
                 <span className="material-symbols-outlined text-2xl text-tertiary">contactless</span>
                 <span className="text-xs">Meeza Card</span>
@@ -171,11 +168,10 @@ export const CheckoutPage = () => {
               <button
                 type="button"
                 onClick={() => setPaymentMethod('fawry')}
-                className={`p-3 rounded-xl border flex flex-col items-center text-center gap-1.5 transition-all ${
-                  paymentMethod === 'fawry'
+                className={`p-3 rounded-xl border flex flex-col items-center text-center gap-1.5 transition-all ${paymentMethod === 'fawry'
                     ? 'border-primary bg-primary/5 text-primary font-bold shadow-sm'
                     : 'border-surface-variant bg-surface hover:border-primary/50 text-secondary'
-                }`}
+                  }`}
               >
                 <span className="material-symbols-outlined text-2xl text-golden-gate">store</span>
                 <span className="text-xs">Fawry Pay</span>
@@ -185,11 +181,10 @@ export const CheckoutPage = () => {
               <button
                 type="button"
                 onClick={() => setPaymentMethod('wallet')}
-                className={`p-3 rounded-xl border flex flex-col items-center text-center gap-1.5 transition-all ${
-                  paymentMethod === 'wallet'
+                className={`p-3 rounded-xl border flex flex-col items-center text-center gap-1.5 transition-all ${paymentMethod === 'wallet'
                     ? 'border-primary bg-primary/5 text-primary font-bold shadow-sm'
                     : 'border-surface-variant bg-surface hover:border-primary/50 text-secondary'
-                }`}
+                  }`}
               >
                 <span className="material-symbols-outlined text-2xl text-error">phone_android</span>
                 <span className="text-xs">Vodafone Cash</span>
